@@ -40,5 +40,11 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             return Ok("the customer updated successfully");
 
         }
+        [HttpDelete("{customerId}")]
+        public async Task<IActionResult>DeleteCustomer(int customerId , CancellationToken canellationToken)
+        {
+            await customerServices.DeleteCustomer(customerId, canellationToken);
+            return Ok("the customer deleted successfully");
+        }
     }
 }
