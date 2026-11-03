@@ -2,5 +2,9 @@
 {
     public record PatchCustomer
     {
+        
+        public string? CustomerName { get; init; }
+        public string? CustomerPhone { get; init; }
+        public string? CustomerEmail { get; init; }
     }
 }

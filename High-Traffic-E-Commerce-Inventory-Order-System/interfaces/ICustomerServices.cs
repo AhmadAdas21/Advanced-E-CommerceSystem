@@ -2,5 +2,6 @@
 {
     public interface ICustomerServices
     {
+        public Task GetAllCustomers();
     }
 }
