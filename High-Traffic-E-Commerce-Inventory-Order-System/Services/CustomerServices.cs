@@ -4,6 +4,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.CustomerDto_s;
 using Microsoft.EntityFrameworkCore;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Threading;
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
     public class CustomerServices : ICustomerServices
@@ -64,6 +65,15 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             }
             _dataBase.Remove(customer);
             await _dataBase.SaveChangesAsync(cancellationToken);
+        }
+        public async Task GetCustomerById(int customerId, CancellationToken cancellationToken)
+        {
+            var customer=await _dataBase.Customers.FirstOrDefaultAsync(customer => customer.CustomerId == customerId);
+            if (customer == null)
+            {
+                throw new Exception("customer not found");
+            }
+            return customer;
         }
     }
 }

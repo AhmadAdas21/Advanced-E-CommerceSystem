@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
 {
     [ApiController]
-    [Route("api/customer]")]
+    [Route("api/customer")]
     public class CustomerController : ControllerBase
     {
         private readonly CustomerServices customerServices;
@@ -46,5 +46,12 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             await customerServices.DeleteCustomer(customerId, canellationToken);
             return Ok("the customer deleted successfully");
         }
+        [HttpGet("{customerId}")]
+        public async Task<IActionResult> GetCustomerById(int customerId,CancellationToken cancellationToken)
+        {
+            await customerServices.GetCustomerById(customerId, cancellationToken);
+            return Ok("the customer found successfully");
+        }   
+
     }
 }
