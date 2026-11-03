@@ -11,4 +11,12 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Dto%27s\CustomerDto%27s\" />
+    <Folder Include="Dto%27s\OrderDto%27s\" />
+    <Folder Include="Dto%27s\ProductDto%27s\" />
+    <Folder Include="interfaces\" />
+    <Folder Include="NewFolder\" />
+  </ItemGroup>
+
 </Project>
