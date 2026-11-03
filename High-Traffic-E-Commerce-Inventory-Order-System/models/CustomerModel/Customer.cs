@@ -4,11 +4,11 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model
 {
     public class Customer
     {
-        public int customerId { get; init; }
-        public string customerName { get; set; }
-        public string customerEmail { get; set; }
-        public string customerPhone { get; set; }
-        List<Order> orders { get; set; }
+        public int CustomerId { get; init; }
+        public string CustomerName { get; set; }
+        public string CustomerEmail { get; set; }
+        public string CustomerPhone { get; set; }
+        public List<Order> Orders { get; set; }
 
     }
 }

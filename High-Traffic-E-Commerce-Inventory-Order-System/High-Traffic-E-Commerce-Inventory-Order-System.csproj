@@ -12,8 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Dto%27s\CustomerDto%27s\" />
-    <Folder Include="Dto%27s\OrderDto%27s\" />
     <Folder Include="Dto%27s\ProductDto%27s\" />
     <Folder Include="interfaces\" />
     <Folder Include="NewFolder\" />
