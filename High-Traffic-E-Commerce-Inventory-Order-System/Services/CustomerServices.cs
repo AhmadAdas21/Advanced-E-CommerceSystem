@@ -66,7 +66,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             _dataBase.Remove(customer);
             await _dataBase.SaveChangesAsync(cancellationToken);
         }
-        public async Task GetCustomerById(int customerId, CancellationToken cancellationToken)
+        public async Task <GetCustomers>GetCustomerById(int customerId, CancellationToken cancellationToken)
         {
             var customer=await _dataBase.Customers.FirstOrDefaultAsync(customer => customer.CustomerId == customerId);
             if (customer == null)
