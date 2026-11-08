@@ -15,12 +15,12 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s
         public decimal ProductPrice { get; set; } = 0;
         [Required]
         [MaxLength(20)]
-        public string SKY { get; set; } = string.Empty;
+        public string SKU { get; set; } = string.Empty;
         [Required]
-        public bool IsActive { get; set; }
+        public bool? IsActive { get; set; }
         [Required]
-        [MinLength(1)]
-        public int AvalablileStock { get; set; }
+        [Range(0,1000000)]
+        public int? AvailableStock { get; set; }
 
 
     }
