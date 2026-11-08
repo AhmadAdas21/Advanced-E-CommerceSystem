@@ -8,7 +8,7 @@
         public decimal ProductPrice { get; set; }
         public bool IsActive { get; set; } = true;
         public string SKU { get; set; } = string.Empty;
-        public int AvalableStock { get; set; }
+        public int AvailableStock { get; set; }
         public int RowVersion { get; set; } = 1;
 
     }

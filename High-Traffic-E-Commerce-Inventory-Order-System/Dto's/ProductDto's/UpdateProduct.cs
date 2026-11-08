@@ -15,10 +15,11 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s
         public decimal ProductPrice { get; set; }
         [Required]
         [Range(0,1000000)]
-        public int AvailableStock  { get; set; }
+        public int? AvailableStock  { get; set; }
         [Required]
         public bool? IsActive { get; set; }
         [Required]
+        [MaxLength(20)]
         public string? SKU { get; set; }
 
     }
