@@ -1,4 +1,5 @@
-﻿using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
+﻿using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s;
+using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
@@ -12,7 +13,41 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         {
             this.productServices = productServices;
         }
-        [HttpGet]
 
+
+
+        [HttpGet]
+        public async Task<IActionResult>GetAllProducts(CancellationToken cancellationToken)
+        {
+            var products= await productServices.GetAllProducts(cancellationToken);
+            return Ok(products);
+        }
+
+
+
+        [HttpGet("{productId}")]
+        public async Task<IActionResult> SearchProduct(int productId,CancellationToken cancellationToken)
+        {
+            var product = await productServices.SearchProduct(productId, cancellationToken);
+            return Ok(product);
+        }
+
+
+
+        [HttpPost]
+        public async Task<IActionResult> CreateProduct([FromBody]CreateProduct product , CancellationToken cancellationToken)
+        {
+            await productServices.CreateProduct(product, cancellationToken);
+            return Created();
+        }
+
+
+
+        [HttpPut("{productId}")]
+        public async Task<IActionResult>UpdateProduct(int productId,[FromBody]UpdateProduct product, CancellationToken cancellationToken)
+        {
+            await productServices.UpdateProduct(productId, product, cancellationToken);
+            return Ok(product);
+        }
     }
 }
