@@ -11,6 +11,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.interfaces
         public Task CreateProduct(CreateProduct product, CancellationToken cancellationToken);
         public Task DeleteProduct(int productId, CancellationToken cancellationToken);
         public Task UpdateProduct(int productId,UpdateProduct product, CancellationToken cancellationToken);  
+        public Task<GetProducts> SearchProductBySKU(string SKU, CancellationToken cancellationToken);
 
     }
 }

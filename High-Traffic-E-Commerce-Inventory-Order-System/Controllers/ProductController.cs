@@ -49,5 +49,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             await productServices.UpdateProduct(productId, product, cancellationToken);
             return Ok(product);
         }
+        [HttpGet("{SKU}")]
+        public async Task <IActionResult>SearchProductBySKU(string SKU,CancellationToken cancellationToken)
+        {
+            var product= await productServices.SearchProductBySKU(SKU, cancellationToken);
+            return Ok(product);
+
+        }
+
     }
 }

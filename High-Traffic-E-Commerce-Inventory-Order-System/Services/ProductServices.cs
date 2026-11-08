@@ -94,18 +94,34 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new Exception("the update product dto is null , enter valid values");
             }
-            var newProduct = new Product
-            {
-                ProductName=product.ProductName,
-                ProductPrice = product.ProductPrice,
-                ProductDescription=product.ProductDescription,
-                IsActive=(bool)product.IsActive,
-                AvailableStock= (int)product.AvailableStock,
-                SKU=product.SKU,
-            };
-            await _dataBaseContext.Products.AddAsync(newProduct,cancellationToken);
+
+            existProduct.ProductName = product.ProductName;
+            existProduct.ProductPrice = product.ProductPrice;
+            existProduct.ProductDescription = product.ProductDescription;
+            existProduct.IsActive = (bool)product.IsActive;
+            existProduct.AvailableStock = (int)product.AvailableStock;
+            existProduct.SKU = product.SKU;
+            
+            
             await _dataBaseContext.SaveChangesAsync(cancellationToken) ;
         }
+        public async Task<GetProducts> SearchProductBySKU(string KSU,CancellationToken cancellationToken)
+        {
+            var product = await _dataBaseContext.Products.FirstOrDefaultAsync(product => product.SKU == KSU);
+            if(product == null)
+            {
+                throw new Exception("the product isnt exist");
+            }
+            return new GetProducts
+            {
+                ProductName= product.ProductName,
+                ProductPrice= product.ProductPrice,
+                ProductDescription= product.ProductDescription,
+                IsActive = (bool)product.IsActive,
+                AvailableStock = (int)product.AvailableStock,
+                SKU = product.SKU,
 
+            };
+        }
     }
 }
