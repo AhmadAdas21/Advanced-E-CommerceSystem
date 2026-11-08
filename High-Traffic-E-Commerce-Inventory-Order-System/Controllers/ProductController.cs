@@ -25,7 +25,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
 
 
 
-        [HttpGet("{productId}")]
+        [HttpGet("id/{productId:int}")]
         public async Task<IActionResult> SearchProduct(int productId,CancellationToken cancellationToken)
         {
             var product = await productServices.SearchProduct(productId, cancellationToken);
@@ -35,21 +35,26 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> CreateProduct([FromBody]CreateProduct product , CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateProduct([FromBody] CreateProduct product, CancellationToken cancellationToken)
         {
             await productServices.CreateProduct(product, cancellationToken);
-            return Created();
+            var SKU=product.SKU;
+           
+            return CreatedAtAction(nameof(SearchProduct), new { SKU = product.SKU }, product);
         }
 
 
 
-        [HttpPut("{productId}")]
+        [HttpPut("id/{productId:int}")]
         public async Task<IActionResult>UpdateProduct(int productId,[FromBody]UpdateProduct product, CancellationToken cancellationToken)
         {
             await productServices.UpdateProduct(productId, product, cancellationToken);
             return Ok(product);
         }
-        [HttpGet("{SKU}")]
+
+
+
+        [HttpGet("sku/{SKU}")]
         public async Task <IActionResult>SearchProductBySKU(string SKU,CancellationToken cancellationToken)
         {
             var product= await productServices.SearchProductBySKU(SKU, cancellationToken);
