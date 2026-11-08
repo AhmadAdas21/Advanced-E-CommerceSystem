@@ -40,7 +40,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             await productServices.CreateProduct(product, cancellationToken);
             var SKU=product.SKU;
            
-            return CreatedAtAction(nameof(SearchProduct), new { SKU = product.SKU }, product);
+            return CreatedAtAction(nameof(SearchProductBySKU), new { SKU = product.SKU }, product);
         }
 
 
