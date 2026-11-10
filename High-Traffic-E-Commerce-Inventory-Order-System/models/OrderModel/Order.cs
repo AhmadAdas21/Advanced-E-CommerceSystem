@@ -10,6 +10,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel
         public decimal TotalAmount { get; set; } = 0;
         public Customer Customer { get; set; }
 
+        public int status { get; set; } = 0;
 
     }
 }

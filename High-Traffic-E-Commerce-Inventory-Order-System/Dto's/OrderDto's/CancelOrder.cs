@@ -7,7 +7,9 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s
     {
         [Required]
         public int OrderId { get; init; }
-        public List<OrderItem> OrderItem { get; set; }
+        [Required]
+        public int Status { get; set; }
+
 
     }
 }

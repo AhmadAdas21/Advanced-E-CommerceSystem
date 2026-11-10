@@ -6,14 +6,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s
 {
     public record CreateOrder
     {
-        [Required]
+        [Range(1, 1000000)]
         public int CustomerId { get; init; }
 
         [Required]
-        public List<OrderItem> Items { get; init; } = new List<OrderItem>();
-        [Required]
-        public Customer Customer { get; set; }
-        
+        [MinLength(1)]
+        public List<CreateOrderItem> Items { get; init; } = new();
+
 
 
 

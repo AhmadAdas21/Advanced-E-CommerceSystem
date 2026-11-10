@@ -74,12 +74,17 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new Exception("the OrderId didint match");
             }
+
             var order = await _context.Orders.FirstOrDefaultAsync(order => order.OrderId == OrderId);
             if (order == null)
             {
                 throw new Exception($"there is no order with this Id value : {OrderId}");
             }
-             _context.Orders.Remove(order);
+            if (order.status == 1)
+            {
+                throw new Exception("the order is already cancelled");
+            }
+            order.status = 1;
             await _context.SaveChangesAsync();
         }
     }
