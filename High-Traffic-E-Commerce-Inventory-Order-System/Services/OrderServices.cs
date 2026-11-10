@@ -80,7 +80,48 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             };
 
 
+           
 
+           foreach(var item in order.Items.OrderBy(x => x.SKU))
+            {
+                var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(product=>product.SKU==item.SKU,cancellationToken);
+                if (product == null)
+                {
+                    throw new KeyNotFoundException($"Product with sku value= {item.SKU} not found");
+                }
+                if (!product.IsActive)
+                { 
+                    throw new InvalidOperationException($"Product with sku value= {item.SKU} is inactive");
+                }
+
+                int affectedRows = await _context.Products.Where(p =>p.ProductId == product.ProductId &&p.IsActive && p.AvailableStock >= item.Quantity)
+                         .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.AvailableStock, p => p.AvailableStock - item.Quantity),  cancellationToken);
+
+                if (affectedRows != 1)
+                {
+                    throw new InvalidOperationException( $"invalid stock for product with sku value  {item.SKU}");
+                }
+                decimal unitPrice = product.ProductPrice;
+
+                decimal totalPrice = unitPrice * item.Quantity;
+
+                newOrder.Items.Add(new OrderItem
+                {
+                    ProductId = product.ProductId,
+                    OrderQuantity = item.Quantity,
+                    UnitPrice = unitPrice,
+                    TotalPrice = totalPrice
+                });
+
+                newOrder.TotalAmount += totalPrice;
+
+
+
+                _context.Orders.Add(newOrder);
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
 
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
