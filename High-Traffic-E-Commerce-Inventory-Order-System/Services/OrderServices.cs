@@ -117,12 +117,12 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
 
 
-                _context.Orders.Add(newOrder);
-
-                await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
+                
             }
+            _context.Orders.Add(newOrder);
 
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
         {
@@ -145,6 +145,11 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 throw new Exception("the order is already cancelled");
             }
             order.status = 1;
+            foreach (var item in order.Items)
+            {
+                var product = await _context.Products.FirstOrDefaultAsync(product => product.ProductId == item.ProductId);
+                product.AvailableStock += item.OrderQuantity;
+            }
             await _context.SaveChangesAsync();
         }
     }
