@@ -1,4 +1,6 @@
-﻿using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
+﻿using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
+using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
@@ -19,6 +21,22 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             return Ok();
         }
         [HttpGet()]
-
+        public async Task<IActionResult>SearchOrder(int OrderId,CancellationToken cancellationToken)
+        {
+            var order =await orderServices.SearchOrder(OrderId,cancellationToken);
+            return Ok(order);
+        }
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder([FromBody]CreateOrder order, CancellationToken cancellationToken)
+        {
+            await orderServices.CreateOrder(order,cancellationToken);
+            return Created();
+        }
+        [HttpDelete]
+        public async Task<IActionResult>DeleteOrder(int orderId,[FromBody] CancelOrder order,CancellationToken cancellationToken )
+        {
+            await orderServices.CancelOrder(orderId, order, cancellationToken);
+            return Ok();
+        }
     }
 }
