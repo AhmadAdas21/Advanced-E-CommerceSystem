@@ -38,5 +38,12 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             await orderServices.CancelOrder(orderId, order, cancellationToken);
             return Ok();
         }
+        [HttpPut]
+        public async Task<IActionResult>UpdateOrder(int orderId, [FromBody]UpdateOrder order, CancellationToken canellationToken)
+        {
+            await orderServices.UpdateOrder(orderId, order, canellationToken);
+            return Ok();
+        }
+        
     }
 }
