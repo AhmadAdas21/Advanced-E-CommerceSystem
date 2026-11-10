@@ -50,19 +50,38 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         }
         public async Task CreateOrder(CreateOrder order, CancellationToken cancellationToken)
         {
-            if (order == null)
+            if (order == null || order.Items == null)
             {
-                throw new Exception("the form body is null");
+                throw new ArgumentException("invalid order request");
             }
+            bool customerExist=await _context.Customers.AnyAsync(customer=>customer.CustomerId==order.CustomerId);
+            if (!customerExist)
+            {
+                throw new KeyNotFoundException($"There's no customer with this id{order.CustomerId}");
+
+            }
+            if (order.Items.Any(i =>i == null ||string.IsNullOrWhiteSpace(i.SKU) ||i.Quantity <= 0))
+            {
+                throw new ArgumentException("Invalid order item");
+            }
+            var duplicatedSKU = order.Items.GroupBy(i => i.SKU, StringComparer.OrdinalIgnoreCase).Any(g => g.Count() > 1);
+            if (duplicatedSKU)
+            {
+                throw new Exception("theres dublicated SKU in some products in the order");
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             var newOrder = new Order
             {
-                Customer = order.Customer,
-                Items = order.Items,
-                CustomerId=order.CustomerId
+                CustomerId = order.CustomerId,
+                Items = new List<OrderItem>(),
+                TotalAmount = 0
 
             };
-            await _context.Orders.AddAsync(newOrder);
-            await _context.SaveChangesAsync(); 
+
+
+
+
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
         {
