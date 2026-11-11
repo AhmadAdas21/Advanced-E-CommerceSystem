@@ -140,17 +140,19 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {   
                 throw new Exception($"there is no order with this Id value : {OrderId}");
             }
-            if (order.status == 1)
-            {
-                throw new Exception("the order is already cancelled");
+            int affectedRows = await _context.Orders.Where(order => order.OrderId == OrderId && order.status == 0).ExecuteUpdateAsync( setters => setters.SetProperty(order => order.status, 2),cancellationToken);
+
+            if (affectedRows != 1)
+            {   
+                throw new InvalidOperationException("Order cannot be cancelled.");
             }
-            order.status = 1;
+           
             foreach (var item in order.Items)
             {
                 var product = await _context.Products.FirstOrDefaultAsync(product => product.ProductId == item.ProductId);
                 product.AvailableStock += item.OrderQuantity;
             }
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
     }
