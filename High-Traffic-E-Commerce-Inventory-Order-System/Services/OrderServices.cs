@@ -3,6 +3,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using Microsoft.EntityFrameworkCore;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
@@ -149,10 +150,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
            
             foreach (var item in order.Items)
             {
-                var product = await _context.Products.FirstOrDefaultAsync(product => product.ProductId == item.ProductId);
-                product.AvailableStock += item.OrderQuantity;
+                var productAffectedRows = await _context.Products.Where(product => product.ProductId == item.ProductId).ExcuteUpdateAsync(setters => setters.SetProperty(p=>p.AvailableStock, p => p.AvailableStock + item.OrderQuantity), cancellationToken);
+               if(productAffectedRows != 1)
+    {
+                    throw new InvalidOperationException(  $"failed to restore stock for product {item.ProductId}");
+                }
             }
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken); 
             await transaction.CommitAsync(cancellationToken);
         }
     }
