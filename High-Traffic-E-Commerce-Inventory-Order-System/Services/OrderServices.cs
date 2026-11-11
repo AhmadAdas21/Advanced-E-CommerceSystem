@@ -134,10 +134,10 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new Exception("the OrderId didint match");
             }
-
-            var order = await _context.Orders.FirstOrDefaultAsync(order => order.OrderId == OrderId);
+            await using var transaction =await _context.Database.BeginTransactionAsync(cancellationToken);
+            var order = await _context.Orders.Include(order => order.Items).FirstOrDefaultAsync(order => order.OrderId == OrderId, cancellationToken);
             if (order == null)
-            {
+            {   
                 throw new Exception($"there is no order with this Id value : {OrderId}");
             }
             if (order.status == 1)
@@ -151,6 +151,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 product.AvailableStock += item.OrderQuantity;
             }
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync(cancellationToken);
         }
     }
 }
