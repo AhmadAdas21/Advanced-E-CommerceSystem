@@ -154,7 +154,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
                     b.HasOne("High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model.Customer", "Customer")
                         .WithMany("Orders")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Customer");
@@ -171,7 +171,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
                     b.HasOne("High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Order");

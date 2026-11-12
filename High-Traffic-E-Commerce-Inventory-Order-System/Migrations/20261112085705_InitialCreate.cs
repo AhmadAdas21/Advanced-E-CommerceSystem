@@ -61,8 +61,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
                         name: "FK_Orders_Customers_CustomerId",
                         column: x => x.CustomerId,
                         principalTable: "Customers",
-                        principalColumn: "CustomerId",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "CustomerId");
                 });
 
             migrationBuilder.CreateTable(
@@ -90,8 +89,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
                         name: "FK_OrderItems_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
-                        principalColumn: "ProductId",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "ProductId");
                 });
 
             migrationBuilder.CreateIndex(
