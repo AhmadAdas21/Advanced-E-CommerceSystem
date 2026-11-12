@@ -1,8 +1,18 @@
+using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
+using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.Services;
+using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddDbContext<DataBaseContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+    )
+);
+
+builder.Services.AddScoped<IOrderServices, OrderServices>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

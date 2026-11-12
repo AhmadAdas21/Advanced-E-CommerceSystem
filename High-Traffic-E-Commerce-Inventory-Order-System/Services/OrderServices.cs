@@ -150,7 +150,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
            
             foreach (var item in order.Items)
             {
-                var productAffectedRows = await _context.Products.Where(product => product.ProductId == item.ProductId).ExcuteUpdateAsync(setters => setters.SetProperty(p=>p.AvailableStock, p => p.AvailableStock + item.OrderQuantity), cancellationToken);
+                var productAffectedRows = await _context.Products.Where(product => product.ProductId == item.ProductId).ExecuteUpdateAsync(setters => setters.SetProperty(p=>p.AvailableStock, p => p.AvailableStock + item.OrderQuantity), cancellationToken);
                if(productAffectedRows != 1)
     {
                     throw new InvalidOperationException(  $"failed to restore stock for product {item.ProductId}");
