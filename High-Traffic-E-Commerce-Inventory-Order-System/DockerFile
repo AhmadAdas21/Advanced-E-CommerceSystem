@@ -1,0 +1,6 @@
+﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY High-Traffic-E-Commerce-Inventory-Order-System/High-Traffic-E-Commerce-Inventory-Order-System.csproj ./
+Run dotnet restore
+COPY . .
+RUN dotnet publish -c Release -o /app/publish --no-restore
