@@ -31,7 +31,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomer customer, CancellationToken cancellationToken)
         {
             await customerServices.CreateCustomer(customer, cancellationToken);
-            return Ok("the customer created successfully ");
+            return StatusCode(StatusCodes.Status201Created, new { Message = "Customer created successfully" });
 
         }
         [HttpPut("{customerId}")]
