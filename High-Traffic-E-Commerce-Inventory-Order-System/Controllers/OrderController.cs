@@ -21,7 +21,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             return Ok(orders);
         }
         [HttpGet("{orderId:int}")]
-        public async Task<IActionResult>SearchOrder(int OrderId,CancellationToken cancellationToken)
+        public async Task<IActionResult>SearchOrder([FromRoute(Name = "orderId")] int OrderId,CancellationToken cancellationToken)
         {
             var order =await orderServices.SearchOrder(OrderId,cancellationToken);
             return Ok(order);
