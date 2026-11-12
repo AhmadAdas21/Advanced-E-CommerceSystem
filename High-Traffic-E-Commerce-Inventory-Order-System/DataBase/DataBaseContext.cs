@@ -16,7 +16,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.DataBase
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<Customer>().HasIndex(customer=>customer.CustomerId).IsUnique();
+            
 
             modelBuilder.Entity<Product>().HasIndex(product => product.SKU).IsUnique();
 
@@ -26,6 +26,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.DataBase
             modelBuilder.Entity<OrderItem>().Property(oi => oi.TotalPrice).HasPrecision(18, 2);
 
             modelBuilder.Entity<Product>().Property(product=>product.ProductPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<Product>().Property(product => product.RowVersion).IsRowVersion();
 
         }
 
