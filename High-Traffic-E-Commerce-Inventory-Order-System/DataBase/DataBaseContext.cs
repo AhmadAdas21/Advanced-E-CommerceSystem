@@ -13,6 +13,25 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.DataBase
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Product> Products { get; set; }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            
+
+            modelBuilder.Entity<Product>().HasIndex(product => product.SKU).IsUnique();
+
+            modelBuilder.Entity<Order>().Property(Order=>Order.TotalAmount).HasPrecision(18, 2);
+
+            modelBuilder.Entity<OrderItem>().Property(oi => oi.UnitPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<OrderItem>().Property(oi => oi.TotalPrice).HasPrecision(18, 2);
+
+            modelBuilder.Entity<Product>().Property(product=>product.ProductPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<Product>().Property(product => product.RowVersion).IsRowVersion();
+            modelBuilder.Entity<Order>().HasOne(order => order.Customer).WithMany(Customer => Customer.Orders).HasForeignKey(order => order.CustomerId).OnDelete(DeleteBehavior.NoAction);
+            
+            modelBuilder.Entity<OrderItem>().HasOne(orderItem=>orderItem.Product).WithMany().HasForeignKey(orderItem=>orderItem.ProductId).OnDelete(DeleteBehavior.NoAction);
+           
+        }
 
     }
 }

@@ -3,13 +3,13 @@
     public class Product
     {
         public int ProductId { get; init; }
-        public string ProductName { get; set; }
+        public string ProductName { get; set; }=string.Empty;
         public string ProductDescription { get; set; } = string.Empty;
         public decimal ProductPrice { get; set; }
         public bool IsActive { get; set; } = true;
         public string SKU { get; set; } = string.Empty;
-        public int AvalableStock { get; set; }
-        public int RowVersion { get; set; } = 1;
+        public int AvailableStock { get; set; }
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     }
 }
