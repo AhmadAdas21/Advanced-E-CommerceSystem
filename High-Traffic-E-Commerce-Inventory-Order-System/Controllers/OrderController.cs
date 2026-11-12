@@ -33,6 +33,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             return StatusCode(StatusCodes.Status201Created, new { Message = "order created successfully" });
         }
         [HttpPatch]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult>CancelOrder(int orderId,[FromBody] CancelOrder order,CancellationToken cancellationToken )
         {
             await orderServices.CancelOrder(orderId, order, cancellationToken);
