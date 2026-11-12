@@ -4,6 +4,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
+using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
@@ -144,8 +145,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             int affectedRows = await _context.Orders.Where(order => order.OrderId == OrderId && order.status == 0).ExecuteUpdateAsync( setters => setters.SetProperty(order => order.status, 2),cancellationToken);
 
             if (affectedRows != 1)
-            {   
-                throw new InvalidOperationException("Order cannot be cancelled.");
+            {
+                throw new OrderStateConflictException("Order cannot be cancelled.");
             }
            
             foreach (var item in order.Items)
