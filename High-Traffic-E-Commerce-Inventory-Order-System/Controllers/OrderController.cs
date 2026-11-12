@@ -17,8 +17,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         [HttpGet]
         public async Task<IActionResult>GetOrders(CancellationToken cancellationToken)
         {
-            await orderServices.GetOrders(cancellationToken);
-            return Ok();
+            var orders= await orderServices.GetOrders(cancellationToken);
+            return Ok(orders);
         }
         [HttpGet("{orderId:int}")]
         public async Task<IActionResult>SearchOrder(int OrderId,CancellationToken cancellationToken)
@@ -30,7 +30,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         public async Task<IActionResult> CreateOrder([FromBody]CreateOrder order, CancellationToken cancellationToken)
         {
             await orderServices.CreateOrder(order,cancellationToken);
-            return Created();
+            return StatusCode(StatusCodes.Status201Created, new { Message = "order created successfully" });
         }
         [HttpPatch]
         public async Task<IActionResult>CancelOrder(int orderId,[FromBody] CancelOrder order,CancellationToken cancellationToken )

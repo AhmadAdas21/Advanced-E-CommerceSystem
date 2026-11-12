@@ -50,8 +50,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         [HttpGet("{customerId}")]
         public async Task<IActionResult> GetCustomerById(int customerId,CancellationToken cancellationToken)
         {
-            await customerServices.GetCustomerById(customerId, cancellationToken);
-            return Ok("the customer found successfully");
+            var customer= await customerServices.GetCustomerById(customerId, cancellationToken);
+            return Ok(customer);
         }   
 
     }
