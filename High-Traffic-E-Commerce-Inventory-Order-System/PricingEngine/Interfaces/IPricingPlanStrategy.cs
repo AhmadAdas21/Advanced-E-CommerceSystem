@@ -2,6 +2,6 @@
 {
     public interface IPricingPlanStrategy
     {
-        
+       public decimal PayAmount(decimal amount);
     }
 }
