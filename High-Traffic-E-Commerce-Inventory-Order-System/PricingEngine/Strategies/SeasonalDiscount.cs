@@ -1,6 +1,8 @@
-﻿namespace High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Stratigies
+﻿using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
+
+namespace High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Strategies
 {
-    public class SeasonalDiscount
+    public class SeasonalDiscount:IPricingPlanStrategy
     {
         public decimal PayAmount(decimal amount)
         {

@@ -1,6 +1,6 @@
 ﻿using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 
-namespace High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Stratigies
+namespace High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Strategies
 {
     public class VipDiscount:IPricingPlanStrategy
     {
