@@ -9,6 +9,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model
         public string CustomerEmail { get; set; } = string.Empty;
         public string CustomerPhone { get; set; } = string.Empty;
         public List<Order> Orders { get; set; } = new List<Order>();
+        public bool IsVip { get; set; } = false;
+
 
     }
 }

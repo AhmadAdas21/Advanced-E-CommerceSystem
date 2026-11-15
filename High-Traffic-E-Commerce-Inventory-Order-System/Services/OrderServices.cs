@@ -6,16 +6,19 @@ using High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
     public class OrderServices : IOrderServices
     {
         private readonly DataBaseContext _context;
+        private readonly IPricingEngine _pricingEngine;
 
-        public OrderServices(DataBaseContext context)
+        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine)
         {
-            _context = context; 
+            _context = context;
+            _pricingEngine = pricingEngine;
         }
 
         public async Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken)
