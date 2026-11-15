@@ -5,6 +5,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -24,6 +25,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddExceptionHandler<OrderConflictExceptionHandler>();
 builder.Services.AddScoped<IPricingEngine, PricingEngine>();
+builder.Services.Configure<PricingRulesOptions>(builder.Configuration.GetSection("Pricing"));
+
+builder.Services.AddScoped<IPricingStrategySelector,PricingStrategySelector>();
 builder.Services.AddProblemDetails();
 var app = builder.Build();
 app.UseExceptionHandler();
