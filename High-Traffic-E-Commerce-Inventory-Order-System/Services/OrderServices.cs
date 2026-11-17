@@ -17,12 +17,14 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         private readonly IPricingEngine _pricingEngine;
         private readonly IPricingStrategySelector _pricingSelector;
         private readonly IDistributedCache distributedCache;
-        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector,IDistributedCache distributedCache)
+        private readonly ILogger<OrderServices> _logger;
+        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector,IDistributedCache distributedCache,ILogger<OrderServices>logger)
         {
             _context = context;
             _pricingEngine = pricingEngine;
             _pricingSelector = pricingSelector;
             this.distributedCache = distributedCache;
+            _logger = logger;
         }
 
         public async Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken)
@@ -135,13 +137,28 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            await distributedCache.RemoveAsync("products:all",CancellationToken.None);
 
-          
+            try
+            {
+                await distributedCache.RemoveAsync("products:all",CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Failed to invalidate products list after order creation.");
+            }
+
             foreach (var item in newOrder.Items)
             {
-                await distributedCache.RemoveAsync( $"products:id:{item.ProductId}",CancellationToken.None);
+                try
+                {
+                    await distributedCache.RemoveAsync($"products:id:{item.ProductId}",CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,"Failed to invalidate product {ProductId} after order creation.",item.ProductId);
+                }
             }
+
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
         {
@@ -176,13 +193,28 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             }
             await _context.SaveChangesAsync(cancellationToken); 
             await transaction.CommitAsync(cancellationToken);
-            await distributedCache.RemoveAsync("products:all",CancellationToken.None);
 
-            
+            try
+            {
+                await distributedCache.RemoveAsync("products:all",CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Failed to invalidate products list after order cancellation.");
+            }
+
             foreach (var item in order.Items)
             {
-                await distributedCache.RemoveAsync( $"products:id:{item.ProductId}",CancellationToken.None);
+                try
+                {
+                    await distributedCache.RemoveAsync( $"products:id:{item.ProductId}",CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,"Failed to invalidate product {ProductId} after order cancellation.",item.ProductId);
+                }
             }
+
         }
     }
 }
