@@ -15,6 +15,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         private readonly DataBaseContext _dataBaseContext;
         private readonly IDistributedCache _distributedCache;
         private const string ProductsCacheKey = "products:all";
+        private static readonly SemaphoreSlim _cacheLock = new(1, 1);
         public ProductServices(DataBaseContext dataBaseContext,IDistributedCache distributedCache)
         {
             _dataBaseContext = dataBaseContext;
@@ -32,17 +33,45 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     return cachedProducts;
                 }
             }
-            var products = await _dataBaseContext.Products.AsNoTracking().Select(product => new GetProducts
-        {
-            ProductDescription = product.ProductDescription,
-            ProductName = product.ProductName,
-            ProductPrice = product.ProductPrice,
-            SKU = product.SKU,
-            AvailableStock = product.AvailableStock,
-            IsActive = product.IsActive}).ToListAsync(cancellationToken);
-            await _distributedCache.SetStringAsync(ProductsCacheKey,JsonSerializer.Serialize(products),new DistributedCacheEntryOptions
-            { AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15) }, cancellationToken);
-            return products;
+            await _cacheLock.WaitAsync(cancellationToken);
+            try
+            {
+                
+                cacheData = await _distributedCache.GetStringAsync(ProductsCacheKey, cancellationToken);
+
+                if (!string.IsNullOrEmpty(cacheData))
+                {
+                    var cachedProducts = JsonSerializer.Deserialize<List<GetProducts>>(cacheData);
+
+                    if (cachedProducts != null)
+                    {
+                        return cachedProducts;
+                    }
+                }
+                var products = await _dataBaseContext.Products.AsNoTracking().Select(product => new GetProducts
+                    {
+                      ProductDescription = product.ProductDescription,
+                      ProductName = product.ProductName,
+                      ProductPrice = product.ProductPrice,
+                      SKU = product.SKU,
+                      AvailableStock = product.AvailableStock,
+                      IsActive = product.IsActive
+                     }).ToListAsync(cancellationToken);
+
+                await _distributedCache.SetStringAsync(ProductsCacheKey,JsonSerializer.Serialize(products),
+                    new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(15)
+                    },cancellationToken);
+
+                return products;
+
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+            
 
         }
         
