@@ -104,86 +104,114 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         
         public async Task<GetProducts>SearchProduct(int productId, CancellationToken cancellationToken)
         {
-           
-            string cacheKey = $"products:id:{productId}";
-            string? dataCache = null;
 
+            string cacheKey = $"products:v2:id:{productId}";
+
+            CachedProduct? cachedProduct = null;
+            int? currentStock = null;
+
+          
             try
             {
-                dataCache = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+                var cacheData = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+
+                if (!string.IsNullOrEmpty(cacheData))
+                {
+                    cachedProduct =JsonSerializer.Deserialize<CachedProduct>(cacheData);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogWarning(ex, "Redis read failed. Using SQL Server.");
+                _logger.LogWarning(ex, "Redis read failed.");
             }
-            if (!string.IsNullOrEmpty(dataCache))
+
+            if (cachedProduct == null)
             {
-                var cachedProduct= JsonSerializer.Deserialize<GetProducts>(dataCache);
-                if (cachedProduct != null)
-                {
-                    return cachedProduct;
-                }
-            }
-            await _productCacheLock.WaitAsync(cancellationToken);
-            try
-            {
+                await _productCacheLock.WaitAsync(cancellationToken);
 
                 try
                 {
-                    dataCache = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    dataCache = null;
-                    _logger.LogWarning(ex, "Redis second read failed.");
-                }
-
-                if (!string.IsNullOrEmpty(dataCache))
-                {
-                    var cachedProduct = JsonSerializer.Deserialize<GetProducts>(dataCache);
-
-                    if (cachedProduct != null)
+                    
+                    try
                     {
-                        return cachedProduct;
+                        var cacheData = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+
+                        if (!string.IsNullOrEmpty(cacheData))
+                        {
+                            cachedProduct =JsonSerializer.Deserialize<CachedProduct>(cacheData);
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(ex, "Redis second read failed.");
+                    }
+
+                    if (cachedProduct == null)
+                    {
+                     
+                        var product = await _dataBaseContext.Products.AsNoTracking().Where(p => p.ProductId == productId).FirstOrDefaultAsync(cancellationToken);
+
+                        if (product == null)
+                        {
+                            throw new KeyNotFoundException($"Product {productId} not found");
+                        }
+
+                        currentStock = product.AvailableStock;
+
+                    
+                        cachedProduct = new CachedProduct
+                        {
+                            ProductId = product.ProductId,
+                            SKU = product.SKU,
+                            ProductName = product.ProductName,
+                            ProductDescription = product.ProductDescription,
+                            ProductPrice = product.ProductPrice,
+                            IsActive = product.IsActive
+                        };
+
+                        try
+                        {
+                            await _distributedCache.SetStringAsync(cacheKey,JsonSerializer.Serialize(cachedProduct),new DistributedCacheEntryOptions
+                                {
+                                    AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15)
+                                },cancellationToken);
+                        }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            _logger.LogWarning(ex, "Redis write failed.");
+                        }
                     }
                 }
-
-                var product = await _dataBaseContext.Products.AsNoTracking().Where(p => p.ProductId == productId).Select(p => new GetProducts
-                    {
-                        ProductDescription = p.ProductDescription,
-                        ProductName = p.ProductName,
-                        ProductPrice = p.ProductPrice,
-                        SKU = p.SKU,
-                        AvailableStock = p.AvailableStock,
-                        IsActive = p.IsActive
-                    }).FirstOrDefaultAsync(cancellationToken);
-
-                if (product == null)
+                finally
                 {
-                    throw new KeyNotFoundException($"Product with ID {productId} not found");
+                    _productCacheLock.Release();
                 }
-
-
-                try
-                {
-                    await _distributedCache.SetStringAsync( cacheKey, JsonSerializer.Serialize(product),
-                        new DistributedCacheEntryOptions
-                        {
-                            AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15)
-                        },cancellationToken);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    _logger.LogWarning(ex, "Redis write failed.");
-                }
-
-                return product;
             }
-            finally
+
+          
+            if (currentStock == null)
             {
-               
-                _productCacheLock.Release();
+                currentStock = await _dataBaseContext.Products.AsNoTracking().Where(p => p.ProductId == productId).Select(p => (int?)p.AvailableStock).FirstOrDefaultAsync(cancellationToken);
             }
+
+            if (currentStock == null)
+            {
+                throw new KeyNotFoundException( $"Product {productId} not found");
+            }
+
+           
+            return new GetProducts
+            {
+                SKU = cachedProduct.SKU,
+                ProductName = cachedProduct.ProductName,
+                ProductDescription = cachedProduct.ProductDescription,
+                ProductPrice = cachedProduct.ProductPrice,
+                IsActive = cachedProduct.IsActive,
+                AvailableStock = currentStock.Value
+            };
+
+
+
         }
         public async Task CreateProduct(CreateProduct product, CancellationToken cancellationToken)
         {
@@ -234,7 +262,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             try
             {
-                await _distributedCache.RemoveAsync($"products:id:{productId}",CancellationToken.None);
+                await _distributedCache.RemoveAsync($"products:v2:id:{productId}",CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -273,7 +301,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             try
             {
-                await _distributedCache.RemoveAsync( $"products:id:{productId}",CancellationToken.None);
+                await _distributedCache.RemoveAsync($"products:v2:id:{productId}", CancellationToken.None);
             }
             catch (Exception ex)
             {
