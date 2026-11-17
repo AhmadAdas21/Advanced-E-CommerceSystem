@@ -2,5 +2,8 @@
 {
     public interface INotificationSystem
     {
+        NotificationChannel Channel { get; }
+
+        Task SendAsync(NotificationMessage message,CancellationToken cancellationToken);
     }
 }
