@@ -48,6 +48,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         
         public async Task<GetProducts>SearchProduct(int productId, CancellationToken cancellationToken)
         {
+            var dataCache=await _distributedCache.GetStringAsync(ProductsCacheKey,cancellationToken);
             var product = await _dataBaseContext.Products.FirstOrDefaultAsync(product => product.ProductId == productId);
             if(product ==null )
             {
@@ -84,7 +85,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             };
             await _dataBaseContext.Products.AddAsync(newProduct,cancellationToken);
             await _dataBaseContext.SaveChangesAsync(cancellationToken);
-            
+            await _distributedCache.RemoveAsync(ProductsCacheKey,cancellationToken);
+
         }
         public async Task DeleteProduct(int productId, CancellationToken cancellationToken)
         {
@@ -95,6 +97,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             }
             _dataBaseContext.Products.Remove(product); 
             await _dataBaseContext.SaveChangesAsync(cancellationToken);
+            await _distributedCache.RemoveAsync(ProductsCacheKey,cancellationToken);
         }
         public async Task UpdateProduct(int productId,UpdateProduct product,CancellationToken cancellationToken)
         {
@@ -117,6 +120,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             
             
             await _dataBaseContext.SaveChangesAsync(cancellationToken) ;
+            await _distributedCache.RemoveAsync(ProductsCacheKey, cancellationToken);
         }
         public async Task<GetProducts> SearchProductBySKU(string KSU,CancellationToken cancellationToken)
         {
