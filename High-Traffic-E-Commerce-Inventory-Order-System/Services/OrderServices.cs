@@ -196,7 +196,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             try
             {
-                await distributedCache.RemoveAsync("products:all",CancellationToken.None);
+                await distributedCache.RemoveAsync("products:v2:all", CancellationToken.None);
             }
             catch (Exception ex)
             {
