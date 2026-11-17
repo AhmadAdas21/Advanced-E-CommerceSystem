@@ -67,8 +67,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 SKU = p.SKU,
                 AvailableStock = p.AvailableStock,
                 IsActive = p.IsActive
-            })
-        .FirstOrDefaultAsync(cancellationToken);
+            }).FirstOrDefaultAsync(cancellationToken);
 
             if (product ==null )
             {
@@ -136,6 +135,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             
             await _dataBaseContext.SaveChangesAsync(cancellationToken) ;
             await _distributedCache.RemoveAsync(ProductsCacheKey, cancellationToken);
+            await _distributedCache.RemoveAsync($"products:id:{productId}",cancellationToken);
         }
         public async Task<GetProducts> SearchProductBySKU(string KSU,CancellationToken cancellationToken)
         {
