@@ -16,6 +16,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         private readonly IDistributedCache _distributedCache;
         private const string ProductsCacheKey = "products:all";
         private static readonly SemaphoreSlim _cacheLock = new(1, 1);
+        private static readonly SemaphoreSlim _productCacheLock = new(1, 1);
         public ProductServices(DataBaseContext dataBaseContext,IDistributedCache distributedCache)
         {
             _dataBaseContext = dataBaseContext;
@@ -77,6 +78,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         
         public async Task<GetProducts>SearchProduct(int productId, CancellationToken cancellationToken)
         {
+           
             string cacheKey = $"products:id:{productId}";
             var dataCache=await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
             if (!string.IsNullOrEmpty(dataCache))
@@ -87,27 +89,51 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     return cachedProduct;
                 }
             }
-
-            var product = await _dataBaseContext.Products.AsNoTracking().Where(product => product.ProductId == productId).Select(p => new GetProducts
+            await _productCacheLock.WaitAsync(cancellationToken);
+            try
             {
-                ProductDescription = p.ProductDescription,
-                ProductName = p.ProductName,
-                ProductPrice = p.ProductPrice,
-                SKU = p.SKU,
-                AvailableStock = p.AvailableStock,
-                IsActive = p.IsActive
-            }).FirstOrDefaultAsync(cancellationToken);
-
-            if (product ==null )
-            {
-                throw new Exception("there's no product exist for this id");
                
+                dataCache = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+
+                if (!string.IsNullOrEmpty(dataCache))
+                {
+                    var cachedProduct = JsonSerializer.Deserialize<GetProducts>(dataCache);
+
+                    if (cachedProduct != null)
+                    {
+                        return cachedProduct;
+                    }
+                }
+
+                var product = await _dataBaseContext.Products.AsNoTracking().Where(p => p.ProductId == productId).Select(p => new GetProducts
+                    {
+                        ProductDescription = p.ProductDescription,
+                        ProductName = p.ProductName,
+                        ProductPrice = p.ProductPrice,
+                        SKU = p.SKU,
+                        AvailableStock = p.AvailableStock,
+                        IsActive = p.IsActive
+                    }).FirstOrDefaultAsync(cancellationToken);
+
+                if (product == null)
+                {
+                    throw new KeyNotFoundException($"Product with ID {productId} not found");
+                }
+
+               
+                await _distributedCache.SetStringAsync(cacheKey, JsonSerializer.Serialize(product),
+                    new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15)
+                    },cancellationToken);
+
+                return product;
             }
-           await _distributedCache.SetStringAsync(cacheKey, JsonSerializer.Serialize(product),new DistributedCacheEntryOptions
-               {
-                  AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15)
-               },cancellationToken);
-            return product;
+            finally
+            {
+               
+                _productCacheLock.Release();
+            }
         }
         public async Task CreateProduct(CreateProduct product, CancellationToken cancellationToken)
         {
