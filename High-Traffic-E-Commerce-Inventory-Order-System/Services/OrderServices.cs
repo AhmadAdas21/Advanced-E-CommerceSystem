@@ -109,7 +109,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 {
                     throw new InvalidOperationException( $"invalid stock for product with sku value  {item.SKU}");
                 }
-                decimal unitPrice = decimal.Round( _pricingEngine.CalculatePrice(strategy, product.ProductPrice));
+                decimal unitPrice = decimal.Round( _pricingEngine.CalculatePrice(strategy, product.ProductPrice),2,MidpointRounding.AwayFromZero);
 
 
                 decimal totalPrice = unitPrice * item.Quantity;
