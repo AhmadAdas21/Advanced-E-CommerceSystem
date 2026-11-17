@@ -106,7 +106,16 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         {
            
             string cacheKey = $"products:id:{productId}";
-            var dataCache=await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+            string? dataCache = null;
+
+            try
+            {
+                dataCache = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Redis read failed. Using SQL Server.");
+            }
             if (!string.IsNullOrEmpty(dataCache))
             {
                 var cachedProduct= JsonSerializer.Deserialize<GetProducts>(dataCache);
@@ -118,8 +127,16 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             await _productCacheLock.WaitAsync(cancellationToken);
             try
             {
-               
-                dataCache = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+
+                try
+                {
+                    dataCache = await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    dataCache = null;
+                    _logger.LogWarning(ex, "Redis second read failed.");
+                }
 
                 if (!string.IsNullOrEmpty(dataCache))
                 {
@@ -146,12 +163,19 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     throw new KeyNotFoundException($"Product with ID {productId} not found");
                 }
 
-               
-                await _distributedCache.SetStringAsync(cacheKey, JsonSerializer.Serialize(product),
-                    new DistributedCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15)
-                    },cancellationToken);
+
+                try
+                {
+                    await _distributedCache.SetStringAsync( cacheKey, JsonSerializer.Serialize(product),
+                        new DistributedCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15)
+                        },cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Redis write failed.");
+                }
 
                 return product;
             }
