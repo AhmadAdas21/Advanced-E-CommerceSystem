@@ -17,14 +17,25 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         private const string ProductsCacheKey = "products:all";
         private static readonly SemaphoreSlim _cacheLock = new(1, 1);
         private static readonly SemaphoreSlim _productCacheLock = new(1, 1);
-        public ProductServices(DataBaseContext dataBaseContext,IDistributedCache distributedCache)
+        private readonly ILogger<ProductServices> _logger;
+        public ProductServices(DataBaseContext dataBaseContext,IDistributedCache distributedCache, ILogger<ProductServices> logger)
         {
             _dataBaseContext = dataBaseContext;
             _distributedCache = distributedCache;
+            _logger = logger;
         }
         public async Task<List<GetProducts>> GetAllProducts(CancellationToken cancellationToken)
         {
-            var cacheData=await _distributedCache.GetStringAsync(ProductsCacheKey,cancellationToken);
+            string? cacheData = null;
+
+            try
+            {
+                cacheData = await _distributedCache.GetStringAsync(ProductsCacheKey, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Redis read failed. Using SQL Server.");
+            }
             if (!string.IsNullOrEmpty(cacheData))
             {
                 var cachedProducts =JsonSerializer.Deserialize<List<GetProducts>>(cacheData);
@@ -37,8 +48,16 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             await _cacheLock.WaitAsync(cancellationToken);
             try
             {
-                
-                cacheData = await _distributedCache.GetStringAsync(ProductsCacheKey, cancellationToken);
+
+                try
+                {
+                    cacheData = await _distributedCache.GetStringAsync(ProductsCacheKey, cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    cacheData = null;
+                    _logger.LogWarning(ex, "Redis second read failed.");
+                }
 
                 if (!string.IsNullOrEmpty(cacheData))
                 {
@@ -59,11 +78,18 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                       IsActive = product.IsActive
                      }).ToListAsync(cancellationToken);
 
-                await _distributedCache.SetStringAsync(ProductsCacheKey,JsonSerializer.Serialize(products),
-                    new DistributedCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(15)
-                    },cancellationToken);
+                try
+                {
+                    await _distributedCache.SetStringAsync( ProductsCacheKey, JsonSerializer.Serialize(products),
+                        new DistributedCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(15)
+                        },cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Redis write failed.");
+                }
 
                 return products;
 
