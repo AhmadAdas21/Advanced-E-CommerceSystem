@@ -7,6 +7,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
@@ -15,11 +16,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         private readonly DataBaseContext _context;
         private readonly IPricingEngine _pricingEngine;
         private readonly IPricingStrategySelector _pricingSelector;
-        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector)
+        private readonly IDistributedCache distributedCache;
+        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector,IDistributedCache distributedCache)
         {
             _context = context;
             _pricingEngine = pricingEngine;
             _pricingSelector = pricingSelector;
+            this.distributedCache = distributedCache;
         }
 
         public async Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken)
@@ -132,6 +135,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            await distributedCache.RemoveAsync("products:all",CancellationToken.None);
+
+          
+            foreach (var item in newOrder.Items)
+            {
+                await distributedCache.RemoveAsync( $"products:id:{item.ProductId}",CancellationToken.None);
+            }
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
         {
@@ -166,6 +176,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             }
             await _context.SaveChangesAsync(cancellationToken); 
             await transaction.CommitAsync(cancellationToken);
+            await distributedCache.RemoveAsync("products:all",CancellationToken.None);
+
+            
+            foreach (var item in order.Items)
+            {
+                await distributedCache.RemoveAsync( $"products:id:{item.ProductId}",CancellationToken.None);
+            }
         }
     }
 }
