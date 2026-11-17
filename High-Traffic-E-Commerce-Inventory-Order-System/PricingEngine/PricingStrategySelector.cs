@@ -15,7 +15,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine
             _rules = options.Value;
         }
 
-        public IPricingPlanStrategy Select(Customer customer,DateTimeOffset now)
+        public IPricingPlanStrategy SelectPricingStrategy(Customer customer,DateTimeOffset now)
         {
             return (
                 _rules.FlashSale.IsActive(now),
