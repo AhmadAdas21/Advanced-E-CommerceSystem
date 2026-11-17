@@ -5,7 +5,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.IdentityModel.Tokens;
+
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
@@ -112,6 +112,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             _dataBaseContext.Products.Remove(product); 
             await _dataBaseContext.SaveChangesAsync(cancellationToken);
             await _distributedCache.RemoveAsync(ProductsCacheKey,cancellationToken);
+            await _distributedCache.RemoveAsync($"products:id:{productId}", cancellationToken);
         }
         public async Task UpdateProduct(int productId,UpdateProduct product,CancellationToken cancellationToken)
         {
