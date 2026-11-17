@@ -30,6 +30,18 @@ builder.Services.Configure<PricingRulesOptions>(builder.Configuration.GetSection
 builder.Services.AddScoped<IPricingStrategySelector,PricingStrategySelector>();
 builder.Services.AddProblemDetails();
 var app = builder.Build();
+if (args.Contains("--migrate"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+
+    var db = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+    await db.Database.MigrateAsync();
+
+    Console.WriteLine("Database migrations completed.");
+
+    return;
+}
 app.UseExceptionHandler();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
