@@ -204,7 +204,14 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             };
             await _dataBaseContext.Products.AddAsync(newProduct,cancellationToken);
             await _dataBaseContext.SaveChangesAsync(cancellationToken);
-            await _distributedCache.RemoveAsync(ProductsCacheKey,cancellationToken);
+            try
+            {
+                await _distributedCache.RemoveAsync(ProductsCacheKey,CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Failed to invalidate products cache after creation.");
+            }
 
         }
         public async Task DeleteProduct(int productId, CancellationToken cancellationToken)
@@ -216,8 +223,23 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             }
             _dataBaseContext.Products.Remove(product); 
             await _dataBaseContext.SaveChangesAsync(cancellationToken);
-            await _distributedCache.RemoveAsync(ProductsCacheKey,cancellationToken);
-            await _distributedCache.RemoveAsync($"products:id:{productId}", cancellationToken);
+            try
+            {
+                await _distributedCache.RemoveAsync(ProductsCacheKey,CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Failed to invalidate products list after update.");
+            }
+
+            try
+            {
+                await _distributedCache.RemoveAsync($"products:id:{productId}",CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Failed to invalidate updated product {ProductId}.",productId);
+            }
         }
         public async Task UpdateProduct(int productId,UpdateProduct product,CancellationToken cancellationToken)
         {
@@ -240,8 +262,23 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             
             
             await _dataBaseContext.SaveChangesAsync(cancellationToken) ;
-            await _distributedCache.RemoveAsync(ProductsCacheKey, cancellationToken);
-            await _distributedCache.RemoveAsync($"products:id:{productId}",cancellationToken);
+            try
+            {
+                await _distributedCache.RemoveAsync(ProductsCacheKey,CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Failed to invalidate products list after deletion.");
+            }
+
+            try
+            {
+                await _distributedCache.RemoveAsync( $"products:id:{productId}",CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Failed to invalidate deleted product {ProductId}.",productId);
+            }
         }
         public async Task<GetProducts> SearchProductBySKU(string KSU,CancellationToken cancellationToken)
         {
