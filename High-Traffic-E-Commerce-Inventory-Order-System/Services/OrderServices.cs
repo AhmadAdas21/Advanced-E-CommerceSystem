@@ -151,7 +151,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 try
                 {
-                    await distributedCache.RemoveAsync($"products:id:{item.ProductId}",CancellationToken.None);
+                    await distributedCache.RemoveAsync($"products:v2:id:{item.ProductId}", CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
@@ -207,7 +207,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 try
                 {
-                    await distributedCache.RemoveAsync( $"products:id:{item.ProductId}",CancellationToken.None);
+                    await distributedCache.RemoveAsync($"products:v2:id:{item.ProductId}", CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
