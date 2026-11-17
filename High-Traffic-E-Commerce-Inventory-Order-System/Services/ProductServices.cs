@@ -48,23 +48,38 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         
         public async Task<GetProducts>SearchProduct(int productId, CancellationToken cancellationToken)
         {
-            var dataCache=await _distributedCache.GetStringAsync(ProductsCacheKey,cancellationToken);
-            var product = await _dataBaseContext.Products.FirstOrDefaultAsync(product => product.ProductId == productId);
-            if(product ==null )
+            string cacheKey = $"products:id:{productId}";
+            var dataCache=await _distributedCache.GetStringAsync(cacheKey, cancellationToken);
+            if (!string.IsNullOrEmpty(dataCache))
+            {
+                var cachedProduct= JsonSerializer.Deserialize<GetProducts>(dataCache);
+                if (cachedProduct != null)
+                {
+                    return cachedProduct;
+                }
+            }
+
+            var product = await _dataBaseContext.Products.AsNoTracking().Where(product => product.ProductId == productId).Select(p => new GetProducts
+            {
+                ProductDescription = p.ProductDescription,
+                ProductName = p.ProductName,
+                ProductPrice = p.ProductPrice,
+                SKU = p.SKU,
+                AvailableStock = p.AvailableStock,
+                IsActive = p.IsActive
+            })
+        .FirstOrDefaultAsync(cancellationToken);
+
+            if (product ==null )
             {
                 throw new Exception("there's no product exist for this id");
                
             }
-            return new GetProducts
-            {
-                ProductDescription = product.ProductDescription,
-                ProductName = product.ProductName,
-                ProductPrice = product.ProductPrice,
-                SKU = product.SKU,
-                AvailableStock = product.AvailableStock,
-                IsActive = product.IsActive,
-
-            };
+           await _distributedCache.SetStringAsync(cacheKey, JsonSerializer.Serialize(product),new DistributedCacheEntryOptions
+               {
+                  AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15)
+               },cancellationToken);
+            return product;
         }
         public async Task CreateProduct(CreateProduct product, CancellationToken cancellationToken)
         {
