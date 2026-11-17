@@ -1,36 +1,49 @@
-﻿using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
+﻿using System.Text.Json;
+using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.IdentityModel.Tokens;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
     public class ProductServices:IProductServices
     {
+        
         private readonly DataBaseContext _dataBaseContext;
-        public ProductServices(DataBaseContext dataBaseContext)
+        private readonly IDistributedCache _distributedCache;
+        private const string ProductsCacheKey = "products:all";
+        public ProductServices(DataBaseContext dataBaseContext,IDistributedCache distributedCache)
         {
             _dataBaseContext = dataBaseContext;
+            _distributedCache = distributedCache;
         }
         public async Task<List<GetProducts>> GetAllProducts(CancellationToken cancellationToken)
         {
-            var products =await  _dataBaseContext.Products.ToListAsync();
-            if(products==null)
+            var cacheData=await _distributedCache.GetStringAsync(ProductsCacheKey,cancellationToken);
+            if (!string.IsNullOrEmpty(cacheData))
             {
-                throw new Exception("there's no products");
-            }
-            return products.Select(product=> new GetProducts
-            {
-                ProductDescription = product.ProductDescription,
-                ProductName = product.ProductName,
-                ProductPrice = product.ProductPrice,
-                SKU = product.SKU,
-                AvailableStock = product.AvailableStock,
-                IsActive = product.IsActive,
+                var cachedProducts =JsonSerializer.Deserialize<List<GetProducts>>(cacheData);
 
-            }).ToList();
-            
+                if (cachedProducts != null)
+                {
+                    return cachedProducts;
+                }
+            }
+            var products = await _dataBaseContext.Products.AsNoTracking().Select(product => new GetProducts
+        {
+            ProductDescription = product.ProductDescription,
+            ProductName = product.ProductName,
+            ProductPrice = product.ProductPrice,
+            SKU = product.SKU,
+            AvailableStock = product.AvailableStock,
+            IsActive = product.IsActive}).ToListAsync(cancellationToken);
+            await _distributedCache.SetStringAsync(ProductsCacheKey,JsonSerializer.Serialize(products),new DistributedCacheEntryOptions
+            { AbsoluteExpirationRelativeToNow =TimeSpan.FromSeconds(15) }, cancellationToken);
+            return products;
+
         }
         
         public async Task<GetProducts>SearchProduct(int productId, CancellationToken cancellationToken)
