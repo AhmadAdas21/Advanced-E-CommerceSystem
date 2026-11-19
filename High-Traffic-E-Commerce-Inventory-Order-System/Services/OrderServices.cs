@@ -10,6 +10,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
+using System.Threading.Channels;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
@@ -162,14 +163,20 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order creation.",item.ProductId);
                 }
             }
-
+            var channel = customer.CustomerPrefferdChannel;
+            var recipient = channel switch
+            {
+                NotificationChannel.Email => customer.CustomerEmail,
+                NotificationChannel.SMS => customer.CustomerPhone,
+                _ => throw new NotSupportedException("Notification channel is not supported.")
+            };
             try
             {
                 var notification = new NotificationMessage(
-                    Recipient: customer.CustomerEmail,
+                    Recipient: recipient,
                     Subject: $"order  with id #{newOrder.OrderId} confirmed",
                     Body: $"Your order with id #{newOrder.OrderId} created successfully.",
-                    Channel: customer.CustomerPrefferdChannel
+                    Channel: channel
                 );
 
                 await notificationService.SendAsync(notification,CancellationToken.None);
@@ -235,7 +242,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order cancellation.",item.ProductId);
                 }
             }
-
+            var channel = order.Customer.CustomerPrefferdChannel;
+            var recipient = channel switch
+            {
+                NotificationChannel.Email => order.Customer.CustomerEmail,
+                NotificationChannel.SMS => order.Customer.CustomerPhone,
+                _ => throw new NotSupportedException("Notification channel is not supported.")
+            };
             try
             {
                 var email = order.Customer?.CustomerEmail;
@@ -243,10 +256,10 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 if (!string.IsNullOrWhiteSpace(email))
                 {
                     var notification = new NotificationMessage(
-                        Recipient: email,
+                        Recipient: recipient,
                         Subject: $"order with id #{order.OrderId} cancelled",
                         Body: $"Your order with id#{order.OrderId} has been cancelled successfully.",
-                        Channel: (NotificationChannel)(order.Customer?.CustomerPrefferdChannel)
+                        Channel: channel
                     );
 
                     await notificationService.SendAsync(notification,CancellationToken.None);
