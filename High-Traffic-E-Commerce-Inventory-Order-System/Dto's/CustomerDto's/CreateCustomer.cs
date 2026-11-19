@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.CustomerDto_s
 {
@@ -14,6 +15,9 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.CustomerDto_s
         [MaxLength(10)]
         [MinLength(10)]
         public string CustomerPhone { get; init; } = string.Empty;
+
+        [EnumDataType(typeof(NotificationChannel))]
+        public NotificationChannel CustomerPrefferdChannel { get; init; }= NotificationChannel.Email;
 
     }
 }

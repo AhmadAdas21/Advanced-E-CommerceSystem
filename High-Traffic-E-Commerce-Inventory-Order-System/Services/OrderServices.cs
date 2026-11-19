@@ -1,13 +1,16 @@
 ﻿using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
-using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
+
 using High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
+using System.Threading.Channels;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
@@ -18,13 +21,15 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         private readonly IPricingStrategySelector _pricingSelector;
         private readonly IDistributedCache distributedCache;
         private readonly ILogger<OrderServices> _logger;
-        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector,IDistributedCache distributedCache,ILogger<OrderServices>logger)
+        private readonly INotificationService notificationService;
+        public OrderServices(INotificationService notificationService,DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector,IDistributedCache distributedCache,ILogger<OrderServices>logger)
         {
             _context = context;
             _pricingEngine = pricingEngine;
             _pricingSelector = pricingSelector;
             this.distributedCache = distributedCache;
             _logger = logger;
+            this.notificationService = notificationService;
         }
 
         public async Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken)
@@ -140,7 +145,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             try
             {
-                await distributedCache.RemoveAsync("products:all",CancellationToken.None);
+                await distributedCache.RemoveAsync("products:v2:all", CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -151,13 +156,37 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 try
                 {
-                    await distributedCache.RemoveAsync($"products:id:{item.ProductId}",CancellationToken.None);
+                    await distributedCache.RemoveAsync($"products:v2:id:{item.ProductId}", CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order creation.",item.ProductId);
                 }
             }
+           
+            try
+            {
+                var channel = customer.CustomerPrefferdChannel;
+                var recipient = channel switch
+                {
+                    NotificationChannel.Email => customer.CustomerEmail,
+                    NotificationChannel.SMS => customer.CustomerPhone,
+                    _ => throw new NotSupportedException("Notification channel is not supported.")
+                };
+                var notification = new NotificationMessage(
+                    Recipient: recipient,
+                    Subject: $"order  with id #{newOrder.OrderId} confirmed",
+                    Body: $"Your order with id #{newOrder.OrderId} created successfully.",
+                    Channel: channel
+                );
+
+                await notificationService.SendAsync(notification,CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "notification failed after creating order with order id  {OrderId}.", newOrder.OrderId);
+            }
+
 
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
@@ -171,7 +200,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 throw new Exception("the OrderId didint match");
             }
             await using var transaction =await _context.Database.BeginTransactionAsync(cancellationToken);
-            var order = await _context.Orders.Include(order => order.Items).FirstOrDefaultAsync(order => order.OrderId == OrderId, cancellationToken);
+            var order = await _context.Orders.Include(order => order.Items).Include(order => order.Customer).FirstOrDefaultAsync(order => order.OrderId == OrderId, cancellationToken);
             if (order == null)
             {   
                 throw new Exception($"there is no order with this Id value : {OrderId}");
@@ -207,13 +236,46 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 try
                 {
-                    await distributedCache.RemoveAsync( $"products:id:{item.ProductId}",CancellationToken.None);
+                    await distributedCache.RemoveAsync($"products:v2:id:{item.ProductId}", CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order cancellation.",item.ProductId);
                 }
             }
+            
+            try
+            {
+                var channel = order.Customer.CustomerPrefferdChannel;
+                var recipient = channel switch
+                {
+                    NotificationChannel.Email => order.Customer.CustomerEmail,
+                    NotificationChannel.SMS => order.Customer.CustomerPhone,
+                    _ => throw new NotSupportedException("Notification channel is not supported.")
+                };
+               
+
+                if (!string.IsNullOrWhiteSpace(recipient))
+                {
+                    var notification = new NotificationMessage(
+                        Recipient: recipient,
+                        Subject: $"order with id #{order.OrderId} cancelled",
+                        Body: $"Your order with id#{order.OrderId} has been cancelled successfully.",
+                        Channel: channel
+                    );
+
+                    await notificationService.SendAsync(notification,CancellationToken.None);
+                }
+                else
+                {
+                    _logger.LogWarning("no notification available for order with order id {OrderId}.", order.OrderId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,"notification failed after cancelling order {OrderId}.", order.OrderId);
+            }
+
 
         }
     }

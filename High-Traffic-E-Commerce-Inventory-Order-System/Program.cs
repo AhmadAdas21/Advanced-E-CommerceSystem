@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Models;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.CommunicationChanels;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -34,6 +37,11 @@ builder.Services.Configure<PricingRulesOptions>(builder.Configuration.GetSection
 
 builder.Services.AddScoped<IPricingStrategySelector,PricingStrategySelector>();
 builder.Services.AddProblemDetails();
+builder.Services.AddTransient<INotificationSystem, EmailNotificationChanel>();
+builder.Services.AddTransient<INotificationSystem, SmsNotificationChanel>();
+builder.Services.AddTransient<INotificationSystem, PushNotificationChanel>();
+
+builder.Services.AddScoped<INotificationService, NotificationService>();
 var app = builder.Build();
 if (args.Contains("--migrate"))
 {

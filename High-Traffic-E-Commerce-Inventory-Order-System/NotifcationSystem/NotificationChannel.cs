@@ -1,6 +1,9 @@
 ﻿namespace High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem
 {
-    public interface INotificationSystem
+    public enum NotificationChannel
     {
+        Email,
+        SMS,
+        Push
     }
 }
