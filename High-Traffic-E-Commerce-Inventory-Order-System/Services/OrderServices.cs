@@ -45,6 +45,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 OrderId = order.OrderId,
                 CustomerName = order.Customer?.CustomerName, 
                 TotalAmount = order.TotalAmount,
+
             }).ToList();
 
             return ordersResult;
@@ -87,13 +88,17 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new Exception("theres dublicated SKU in some products in the order");
             }
-
+            if (order.RequestId == Guid.Empty)
+            {
+                throw new ArgumentException("RequestId is required.");
+            }
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             var newOrder = new Order
             {
                 CustomerId = order.CustomerId,
                 Items = new List<OrderItem>(),
-                TotalAmount = 0
+                TotalAmount = 0,
+                RequestId = order.RequestId,
 
             };
 

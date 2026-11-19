@@ -13,7 +13,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s
         [MinLength(1)]
         public List<CreateOrderItem> Items { get; init; } = new();
 
-
+        [Required]
+        public Guid RequestId { get; init; }
 
 
     }
