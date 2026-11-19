@@ -1,4 +1,5 @@
 ﻿using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.CustomerDto_s;
+using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,9 +9,9 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
     [Route("api/customer")]
     public class CustomerController : ControllerBase
     {
-        private readonly CustomerServices customerServices;
+        private readonly ICustomerServices customerServices;
 
-        public CustomerController(CustomerServices customerServices)
+        public CustomerController(ICustomerServices customerServices)
         {
             this.customerServices = customerServices;
 
