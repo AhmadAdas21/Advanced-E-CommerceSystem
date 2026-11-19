@@ -15,7 +15,12 @@ builder.Services.AddDbContext<DataBaseContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration =builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 
+    options.InstanceName = "AdvancedCommerce:";
+});
 builder.Services.AddScoped<IOrderServices, OrderServices>();
 builder.Services.AddScoped<ICustomerServices, CustomerServices>();
 

@@ -10,12 +10,12 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=AdvancedCommerceDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True"
+      ConnectionStrings__Redis: "redis:6379"
     depends_on:
       migrator:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-
   migrator:
     build:
       context: .
