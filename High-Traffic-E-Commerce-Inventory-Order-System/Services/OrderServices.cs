@@ -1,7 +1,7 @@
 ﻿using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
-using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
+
 using High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
@@ -145,7 +145,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             try
             {
-                await distributedCache.RemoveAsync("products:all",CancellationToken.None);
+                await distributedCache.RemoveAsync("products:v2:all", CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -163,15 +163,16 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order creation.",item.ProductId);
                 }
             }
-            var channel = customer.CustomerPrefferdChannel;
-            var recipient = channel switch
-            {
-                NotificationChannel.Email => customer.CustomerEmail,
-                NotificationChannel.SMS => customer.CustomerPhone,
-                _ => throw new NotSupportedException("Notification channel is not supported.")
-            };
+           
             try
             {
+                var channel = customer.CustomerPrefferdChannel;
+                var recipient = channel switch
+                {
+                    NotificationChannel.Email => customer.CustomerEmail,
+                    NotificationChannel.SMS => customer.CustomerPhone,
+                    _ => throw new NotSupportedException("Notification channel is not supported.")
+                };
                 var notification = new NotificationMessage(
                     Recipient: recipient,
                     Subject: $"order  with id #{newOrder.OrderId} confirmed",
@@ -242,18 +243,19 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order cancellation.",item.ProductId);
                 }
             }
-            var channel = order.Customer.CustomerPrefferdChannel;
-            var recipient = channel switch
-            {
-                NotificationChannel.Email => order.Customer.CustomerEmail,
-                NotificationChannel.SMS => order.Customer.CustomerPhone,
-                _ => throw new NotSupportedException("Notification channel is not supported.")
-            };
+            
             try
             {
-                var email = order.Customer?.CustomerEmail;
+                var channel = order.Customer.CustomerPrefferdChannel;
+                var recipient = channel switch
+                {
+                    NotificationChannel.Email => order.Customer.CustomerEmail,
+                    NotificationChannel.SMS => order.Customer.CustomerPhone,
+                    _ => throw new NotSupportedException("Notification channel is not supported.")
+                };
+               
 
-                if (!string.IsNullOrWhiteSpace(email))
+                if (!string.IsNullOrWhiteSpace(recipient))
                 {
                     var notification = new NotificationMessage(
                         Recipient: recipient,
@@ -266,7 +268,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 }
                 else
                 {
-                    _logger.LogWarning("no custoer email available for order with order id {OrderId}.", order.OrderId);
+                    _logger.LogWarning("no notification available for order with order id {OrderId}.", order.OrderId);
                 }
             }
             catch (Exception ex)
