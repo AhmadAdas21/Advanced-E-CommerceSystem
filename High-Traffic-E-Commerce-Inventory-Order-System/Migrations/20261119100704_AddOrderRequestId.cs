@@ -9,14 +9,26 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
     public partial class AddOrderRequestId : Migration
     {
         /// <inheritdoc />
+
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<Guid>(
                 name: "RequestId",
                 table: "Orders",
                 type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.Sql(
+                "UPDATE [Orders] SET [RequestId] = NEWID() WHERE [RequestId] IS NULL");
+
+            migrationBuilder.AlterColumn<Guid>(
+                name: "RequestId",
+                table: "Orders",
+                type: "uniqueidentifier",
                 nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+                oldClrType: typeof(Guid),
+                oldType: "uniqueidentifier",
+                oldNullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_RequestId",
@@ -24,6 +36,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
                 column: "RequestId",
                 unique: true);
         }
+
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
