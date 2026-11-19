@@ -8,6 +8,8 @@ using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
@@ -18,13 +20,15 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         private readonly IPricingStrategySelector _pricingSelector;
         private readonly IDistributedCache distributedCache;
         private readonly ILogger<OrderServices> _logger;
-        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector,IDistributedCache distributedCache,ILogger<OrderServices>logger)
+        private readonly INotificationService notificationService;
+        public OrderServices(INotificationService notificationService,DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector,IDistributedCache distributedCache,ILogger<OrderServices>logger)
         {
             _context = context;
             _pricingEngine = pricingEngine;
             _pricingSelector = pricingSelector;
             this.distributedCache = distributedCache;
             _logger = logger;
+            this.notificationService = notificationService;
         }
 
         public async Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken)
@@ -158,6 +162,23 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order creation.",item.ProductId);
                 }
             }
+
+            try
+            {
+                var notification = new NotificationMessage(
+                    Recipient: customer.CustomerEmail,
+                    Subject: $"order  with id #{newOrder.OrderId} confirmed",
+                    Body: $"Your order with id #{newOrder.OrderId} created successfully.",
+                    Channel: NotificationChannel.Email
+                );
+
+                await notificationService.SendAsync(notification,CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "notification failed after creating order with order id  {OrderId}.", newOrder.OrderId);
+            }
+
 
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
