@@ -1,14 +1,61 @@
+using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
+using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.Services;
+using High_Traffic_E_Commerce_Inventory_Order_System.Exceptions;
+using Microsoft.EntityFrameworkCore;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Models;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.CommunicationChanels;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddDbContext<DataBaseContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+    )
+);
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration =builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+
+    options.InstanceName = "AdvancedCommerce:";
+});
+builder.Services.AddScoped<IOrderServices, OrderServices>();
+builder.Services.AddScoped<ICustomerServices, CustomerServices>();
+
+builder.Services.AddScoped<IProductServices, ProductServices>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddExceptionHandler<OrderConflictExceptionHandler>();
+builder.Services.AddScoped<IPricingEngine, PricingEngine>();
+builder.Services.Configure<PricingRulesOptions>(builder.Configuration.GetSection("Pricing"));
 
+builder.Services.AddScoped<IPricingStrategySelector,PricingStrategySelector>();
+builder.Services.AddProblemDetails();
+builder.Services.AddTransient<INotificationSystem, EmailNotificationChanel>();
+builder.Services.AddTransient<INotificationSystem, SmsNotificationChanel>();
+builder.Services.AddTransient<INotificationSystem, PushNotificationChanel>();
+
+builder.Services.AddScoped<INotificationService, NotificationService>();
 var app = builder.Build();
+if (args.Contains("--migrate"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
 
+    var db = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+    await db.Database.MigrateAsync();
+
+    Console.WriteLine("Database migrations completed.");
+
+    return;
+}
+app.UseExceptionHandler();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
