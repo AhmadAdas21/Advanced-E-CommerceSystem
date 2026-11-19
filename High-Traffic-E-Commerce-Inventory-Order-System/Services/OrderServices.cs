@@ -192,7 +192,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 throw new Exception("the OrderId didint match");
             }
             await using var transaction =await _context.Database.BeginTransactionAsync(cancellationToken);
-            var order = await _context.Orders.Include(order => order.Items).FirstOrDefaultAsync(order => order.OrderId == OrderId, cancellationToken);
+            var order = await _context.Orders.Include(order => order.Items).Include(order => order.Customer).FirstOrDefaultAsync(order => order.OrderId == OrderId, cancellationToken);
             if (order == null)
             {   
                 throw new Exception($"there is no order with this Id value : {OrderId}");
@@ -235,6 +235,32 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     _logger.LogError(ex,"Failed to invalidate product {ProductId} after order cancellation.",item.ProductId);
                 }
             }
+
+            try
+            {
+                var email = order.Customer?.CustomerEmail;
+
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    var notification = new NotificationMessage(
+                        Recipient: email,
+                        Subject: $"order with id #{order.OrderId} cancelled",
+                        Body: $"Your order with id#{order.OrderId} has been cancelled successfully.",
+                        Channel: NotificationChannel.Email
+                    );
+
+                    await notificationService.SendAsync(notification,CancellationToken.None);
+                }
+                else
+                {
+                    _logger.LogWarning("no custoer email available for order with order id {OrderId}.", order.OrderId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,"notification failed after cancelling order {OrderId}.", order.OrderId);
+            }
+
 
         }
     }
