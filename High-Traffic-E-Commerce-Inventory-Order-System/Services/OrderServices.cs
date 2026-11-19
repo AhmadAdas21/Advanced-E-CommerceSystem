@@ -14,11 +14,12 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
     {
         private readonly DataBaseContext _context;
         private readonly IPricingEngine _pricingEngine;
-
-        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine)
+        private readonly IPricingStrategySelector _pricingSelector;
+        public OrderServices(DataBaseContext context,IPricingEngine pricingEngine, IPricingStrategySelector pricingSelector)
         {
             _context = context;
             _pricingEngine = pricingEngine;
+            _pricingSelector = pricingSelector;
         }
 
         public async Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken)
@@ -59,12 +60,14 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new ArgumentException("invalid order request");
             }
-            bool customerExist=await _context.Customers.AnyAsync(customer=>customer.CustomerId==order.CustomerId);
-            if (!customerExist)
-            {
-                throw new KeyNotFoundException($"There's no customer with this id{order.CustomerId}");
+            var customer = await _context.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.CustomerId == order.CustomerId,cancellationToken);
 
+            if (customer == null)
+            {
+                throw new KeyNotFoundException( $"Customer {order.CustomerId} not found");
             }
+
+            var strategy = _pricingSelector.SelectPricingStrategy(customer,DateTimeOffset.UtcNow);
             if (order.Items.Any(i =>i == null ||string.IsNullOrWhiteSpace(i.SKU) ||i.Quantity <= 0))
             {
                 throw new ArgumentException("Invalid order item");
@@ -106,7 +109,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 {
                     throw new InvalidOperationException( $"invalid stock for product with sku value  {item.SKU}");
                 }
-                decimal unitPrice = product.ProductPrice;
+                decimal unitPrice = decimal.Round( _pricingEngine.CalculatePrice(strategy, product.ProductPrice),2,MidpointRounding.AwayFromZero);
+
 
                 decimal totalPrice = unitPrice * item.Quantity;
 
