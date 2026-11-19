@@ -17,11 +17,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Commu
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-           
-            string logMessage = $"email notification sent to {message.Recipient} with this content {message.Subject}";
 
-           
-            logger.LogInformation("{log message is}", logMessage);
+            logger.LogInformation("email notification simulated. Channel: {Channel}",Channel);
 
             return Task.CompletedTask;
         }

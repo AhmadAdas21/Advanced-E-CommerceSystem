@@ -17,8 +17,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Commu
         public Task SendNotification(NotificationMessage notificationMessage, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            string logmessage = $"push notification sent to {notificationMessage.Recipient} with this content {notificationMessage.Subject}";
-            logger.LogInformation(logmessage);
+            logger.LogInformation("Push notification simulated. Channel: {Channel}",Channel);
             return Task.CompletedTask;
         }
     }
