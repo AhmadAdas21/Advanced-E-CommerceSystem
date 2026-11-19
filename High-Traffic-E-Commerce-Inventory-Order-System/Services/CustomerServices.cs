@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Threading;
+using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
     public class CustomerServices : ICustomerServices
@@ -30,11 +31,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new ArgumentNullException(nameof(customer), "customer cannot be null.");
             }
+            ValidateNotificationChannel(customer.CustomerPrefferdChannel);
             var newCustomer = new Customer
             {
                 CustomerName = customer.CustomerName,
                 CustomerEmail = customer.CustomerEmail,
-                CustomerPhone = customer.CustomerPhone
+                CustomerPhone = customer.CustomerPhone,
+                CustomerPrefferdChannel = customer.CustomerPrefferdChannel,
 
             };
             await _dataBase.Customers.AddAsync(newCustomer);
@@ -49,9 +52,11 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new Exception("customer not found");
             }
+            ValidateNotificationChannel(updateCusotmer.CustomerPrefferdChannel);
             customer.CustomerName = updateCusotmer.CustomerName;
             customer.CustomerEmail=updateCusotmer.CustomerEmail;
             customer.CustomerPhone = updateCusotmer.CustomerPhone;
+            customer.CustomerPrefferdChannel=updateCusotmer.CustomerPrefferdChannel;
             await _dataBase.SaveChangesAsync(cancellationToken);
            
 
@@ -79,7 +84,15 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 CustomerEmail = customer.CustomerEmail,
                 CustomerPhone = customer.CustomerPhone,
                 CustomerId= customer.CustomerId,
+                CustomerPrefferdChannel = customer.CustomerPrefferdChannel,
             };
+        }
+        private static void ValidateNotificationChannel(NotificationChannel channel)
+        {
+            if (channel is not (NotificationChannel.Email or NotificationChannel.SMS))
+            {
+                throw new ArgumentException("only email and sms notification services avaliable tight now");
+            }
         }
     }
 }

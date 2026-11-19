@@ -144,6 +144,9 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("CustomerPrefferdChannel")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsVip")
                         .HasColumnType("bit");
 
