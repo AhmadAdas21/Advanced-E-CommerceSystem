@@ -4,6 +4,6 @@
     {
         NotificationChannel Channel { get; }
 
-        Task SendAsync(NotificationMessage message,CancellationToken cancellationToken);
+        Task SendNotification(NotificationMessage message,CancellationToken cancellationToken);
     }
 }
