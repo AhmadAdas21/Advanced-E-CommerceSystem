@@ -169,7 +169,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                     Recipient: customer.CustomerEmail,
                     Subject: $"order  with id #{newOrder.OrderId} confirmed",
                     Body: $"Your order with id #{newOrder.OrderId} created successfully.",
-                    Channel: NotificationChannel.Email
+                    Channel: customer.CustomerPrefferdChannel
                 );
 
                 await notificationService.SendAsync(notification,CancellationToken.None);
@@ -246,7 +246,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                         Recipient: email,
                         Subject: $"order with id #{order.OrderId} cancelled",
                         Body: $"Your order with id#{order.OrderId} has been cancelled successfully.",
-                        Channel: NotificationChannel.Email
+                        Channel: (NotificationChannel)(order.Customer?.CustomerPrefferdChannel)
                     );
 
                     await notificationService.SendAsync(notification,CancellationToken.None);

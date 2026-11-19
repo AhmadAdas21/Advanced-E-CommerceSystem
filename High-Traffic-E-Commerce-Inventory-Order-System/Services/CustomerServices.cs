@@ -83,8 +83,9 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 CustomerName = customer.CustomerName,
                 CustomerEmail = customer.CustomerEmail,
                 CustomerPhone = customer.CustomerPhone,
-                CustomerId= customer.CustomerId,
+                CustomerId = customer.CustomerId,
                 CustomerPrefferdChannel = customer.CustomerPrefferdChannel,
+               
             };
         }
         private static void ValidateNotificationChannel(NotificationChannel channel)
