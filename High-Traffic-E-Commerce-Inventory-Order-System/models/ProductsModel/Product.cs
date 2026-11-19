@@ -9,7 +9,7 @@
         public bool IsActive { get; set; } = true;
         public string SKU { get; set; } = string.Empty;
         public int AvailableStock { get; set; }
-        public int RowVersion { get; set; } = 1;
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     }
 }

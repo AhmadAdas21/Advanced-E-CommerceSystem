@@ -73,7 +73,13 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new Exception("customer not found");
             }
-            return customer;
+            return new GetCustomers
+            {
+                CustomerName = customer.CustomerName,
+                CustomerEmail = customer.CustomerEmail,
+                CustomerPhone = customer.CustomerPhone,
+                CustomerId= customer.CustomerId,
+            };
         }
     }
 }

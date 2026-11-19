@@ -38,7 +38,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         public async Task<IActionResult> CreateProduct([FromBody] CreateProduct product, CancellationToken cancellationToken)
         {
             await productServices.CreateProduct(product, cancellationToken);
-            var SKU=product.SKU;
+           
            
             return CreatedAtAction(nameof(SearchProductBySKU), new { SKU = product.SKU }, product);
         }
