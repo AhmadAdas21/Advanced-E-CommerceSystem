@@ -35,11 +35,19 @@ namespace AdvancedE_CommerceTests.UnitTests
         [Fact]
         public void Success_ShouldThrow_WhenAccessingError()
         {
+            //Arrange
+            var result= Result<int>.Success(5);
+            //Act and assert
+            Assert.Throws<InvalidOperationException>(() => _ = result.Error);
         }
         [Fact]
-        public void Test4()
+        public void TFailure_ShouldThrow_WhenAccessingValue()
         {
-
+            //Arrange
+            var error= new AppError(ErrorType.Validation, "INVALID_ORDER","Invalid order request");
+            var result = Result<int>.Failure(error);
+            //Act and assert
+            Assert.Throws<InvalidOperationException>( () => _ = result.Value);
         }
     }
 }
