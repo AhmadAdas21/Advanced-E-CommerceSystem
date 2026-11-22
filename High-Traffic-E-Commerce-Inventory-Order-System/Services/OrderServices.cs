@@ -33,7 +33,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             this.notificationService = notificationService;
         }
 
-        public async Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken)
+        public async Task<Result<List<GetOrders>>> GetOrders(CancellationToken cancellationToken)
         {
             var orders = await _context.Orders.Include(order => order.Customer) .ToListAsync(cancellationToken);
             if (orders == null)
@@ -53,7 +53,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         }
         public async Task<Result<GetOrders>> SearchOrder(int orderId,CancellationToken cancellationToken)
         {
-            var order =await _context.Orders.AsNoTracking().Include(o => o.Customer).FirstOrDefaultAsync(order=>order.OrderId== orderId);
+            var order =await _context.Orders.AsNoTracking().Include(o => o.Customer).FirstOrDefaultAsync(order=>order.OrderId== orderId,cancellationToken);
             if (order == null)
             {
                 return Result<GetOrders>.Failure(new AppError( ErrorType.NotFound,"ORDER_NOT_FOUND",$"order with this id:{orderId} is not found."
@@ -68,38 +68,38 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             };
             return Result<GetOrders>.Success(orderResult); 
         }
-        public async Task CreateOrder(CreateOrder order, CancellationToken cancellationToken)
+        public async Task<Result<int>> CreateOrder(CreateOrder order, CancellationToken cancellationToken)
         {
             if (order == null || order.Items == null)
             {
-                throw new ArgumentException("invalid order request");
+                return Result<int>.Failure(new AppError( ErrorType.Validation,"INVALID_ORDER","Invalid order request."));
             }
             var customer = await _context.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.CustomerId == order.CustomerId,cancellationToken);
 
             if (customer == null)
             {
-                throw new KeyNotFoundException( $"Customer {order.CustomerId} not found");
+                return Result<int>.Failure(new AppError(ErrorType.NotFound,"CUSTOMER_NOT_FOUND",$"Customer {order.CustomerId} not found."));
             }
 
             var strategy = _pricingSelector.SelectPricingStrategy(customer,DateTimeOffset.UtcNow);
             if (order.Items.Any(i =>i == null ||string.IsNullOrWhiteSpace(i.SKU) ||i.Quantity <= 0))
             {
-                throw new ArgumentException("Invalid order item");
+                return Result<int>.Failure(new AppError(ErrorType.Validation, "INVALID_ORDER_ITEM","Invalid order item."));
             }
             var duplicatedSKU = order.Items.GroupBy(i => i.SKU, StringComparer.OrdinalIgnoreCase).Any(g => g.Count() > 1);
             if (duplicatedSKU)
             {
-                throw new Exception("theres dublicated SKU in some products in the order");
+                return Result<int>.Failure(new AppError( ErrorType.Validation,"DUPLICATE_SKU","Duplicate SKU found in order."));
             }
             if (order.RequestId == Guid.Empty)
             {
-                throw new ArgumentException("RequestId is required.");
+                return Result<int>.Failure(new AppError(ErrorType.Validation,"INVALID_REQUEST_ID","RequestId is required."));
             }
             var requestExists = await _context.Orders.AsNoTracking().AnyAsync(o => o.RequestId == order.RequestId,cancellationToken);
 
             if (requestExists)
             {
-                throw new OrderStateConflictException("An order with this RequestId already exists.");
+                return Result<int>.Failure(new AppError(ErrorType.Conflict,"DUPLICATE_REQUEST", "An order with this RequestId already exists."));
             }
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             var newOrder = new Order
@@ -119,11 +119,15 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(product=>product.SKU==item.SKU,cancellationToken);
                 if (product == null)
                 {
-                    throw new KeyNotFoundException($"Product with sku value= {item.SKU} not found");
+                    await transaction.RollbackAsync(cancellationToken);
+
+                    return Result<int>.Failure(new AppError( ErrorType.NotFound,"PRODUCT_NOT_FOUND",$"Product {item.SKU} not found."));
                 }
                 if (!product.IsActive)
-                { 
-                    throw new InvalidOperationException($"Product with sku value= {item.SKU} is inactive");
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+
+                    return Result<int>.Failure(new AppError(ErrorType.Conflict,"PRODUCT_INACTIVE",$"Product {item.SKU} is inactive."));
                 }
 
                 int affectedRows = await _context.Products.Where(p =>p.ProductId == product.ProductId &&p.IsActive && p.AvailableStock >= item.Quantity)
@@ -131,7 +135,9 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
                 if (affectedRows != 1)
                 {
-                    throw new OrderStateConflictException($"Insufficient stock or inactive product: {item.SKU}");
+                    await transaction.RollbackAsync(cancellationToken);
+
+                    return Result<int>.Failure(new AppError(ErrorType.Conflict, "INSUFFICIENT_STOCK",$"Insufficient stock for product {item.SKU}."));
                 }
                 decimal unitPrice = decimal.Round( _pricingEngine.CalculatePrice(strategy, product.ProductPrice),2,MidpointRounding.AwayFromZero);
 
@@ -201,7 +207,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 _logger.LogWarning(ex, "notification failed after creating order with order id  {OrderId}.", newOrder.OrderId);
             }
 
-
+            return Result<int>.Success(newOrder.OrderId);
         }
         public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
         {

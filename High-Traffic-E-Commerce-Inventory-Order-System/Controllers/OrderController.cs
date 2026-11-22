@@ -56,11 +56,28 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
             };
         }
         [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody]CreateOrder order, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateOrder([FromBody] CreateOrder order, CancellationToken cancellationToken)
         {
-            await orderServices.CreateOrder(order,cancellationToken);
-            return StatusCode(StatusCodes.Status201Created, new { Message = "order created successfully" });
-        }
+            var createdOrder = await orderServices.CreateOrder(order, cancellationToken);
+            if (createdOrder.IsSuccess)
+            {
+                return StatusCode(StatusCodes.Status201Created, new
+                {
+                    Message = "Order created successfully",
+                    OrderId = createdOrder.Value
+                });
+            }
+
+            var error = createdOrder.Error;
+
+            return error.Type switch
+            {
+                ErrorType.Validation => BadRequest(new { error.Code, error.Message }),
+                ErrorType.NotFound => NotFound(new { error.Code, error.Message }),
+                ErrorType.Conflict => Conflict(new { error.Code, error.Message }),
+                _ => StatusCode(500)
+            };
+            }
         [HttpPatch]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
