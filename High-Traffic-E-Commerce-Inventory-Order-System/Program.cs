@@ -9,11 +9,15 @@ using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Models;
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.CommunicationChanels;
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
+using High_Traffic_E_Commerce_Inventory_Order_System.Auditing;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AuditActionFilter>();
+});
 builder.Services.AddDbContext<DataBaseContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
     )

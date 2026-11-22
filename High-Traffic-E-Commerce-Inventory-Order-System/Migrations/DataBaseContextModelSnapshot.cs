@@ -22,6 +22,35 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("High_Traffic_E_Commerce_Inventory_Order_System.Auditing.AuditLog", b =>
+                {
+                    b.Property<long>("AuditLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AuditLogId"));
+
+                    b.Property<int>("HttpStatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTimeOffset>("TimestampUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("AuditLogId");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel.Order", b =>
                 {
                     b.Property<int>("OrderId")

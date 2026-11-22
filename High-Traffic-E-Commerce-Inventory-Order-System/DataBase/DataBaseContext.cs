@@ -1,4 +1,5 @@
-﻿using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
+﻿using High_Traffic_E_Commerce_Inventory_Order_System.Auditing;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.DataBase
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -31,7 +33,12 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.DataBase
             
             modelBuilder.Entity<OrderItem>().HasOne(orderItem=>orderItem.Product).WithMany().HasForeignKey(orderItem=>orderItem.ProductId).OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<Order>().HasIndex(o => o.RequestId).IsUnique();
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.Property(a => a.Operation).HasMaxLength(100).IsRequired();
 
+                entity.Property(a => a.Outcome).HasMaxLength(20).IsRequired();
+            });
         }
 
     }

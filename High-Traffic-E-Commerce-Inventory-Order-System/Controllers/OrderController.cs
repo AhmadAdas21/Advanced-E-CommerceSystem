@@ -1,4 +1,5 @@
-﻿using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
+﻿using High_Traffic_E_Commerce_Inventory_Order_System.Auditing;
+using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.ResultPattern;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -55,6 +56,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
                 _ => StatusCode(500)
             };
         }
+        
+        [Auditable("CreateOrder")]
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrder order, CancellationToken cancellationToken)
         {
@@ -78,6 +81,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
                 _ => StatusCode(500)
             };
             }
+        [Auditable("CancelOrder")]
         [HttpPatch]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
