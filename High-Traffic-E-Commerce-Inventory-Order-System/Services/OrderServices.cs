@@ -49,7 +49,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             }).ToList();
 
-            return ordersResult;
+            return Result<List<GetOrders>>.Success(ordersResult);
         }
         public async Task<Result<GetOrders>> SearchOrder(int orderId,CancellationToken cancellationToken)
         {
@@ -209,27 +209,31 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             return Result<int>.Success(newOrder.OrderId);
         }
-        public async Task CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
+        public async Task<Result<int>> CancelOrder(int OrderId, CancelOrder cancelOrder, CancellationToken cancellationToken)
         {
             if (cancelOrder == null)
             {
-                throw new Exception("the cancelation form is null");
+                return Result<int>.Failure(new AppError(ErrorType.Validation, "INVALID_CANCELLATION", "Cancellation request cannot be null."));
             }
             if (cancelOrder.OrderId != OrderId)
             {
-                throw new Exception("the OrderId didint match");
+                return Result<int>.Failure(new AppError(ErrorType.Validation,"ORDER_ID_MISMATCH","OrderId does not match the cancellation request."));
             }
             await using var transaction =await _context.Database.BeginTransactionAsync(cancellationToken);
             var order = await _context.Orders.Include(order => order.Items).Include(order => order.Customer).FirstOrDefaultAsync(order => order.OrderId == OrderId, cancellationToken);
             if (order == null)
-            {   
-                throw new Exception($"there is no order with this Id value : {OrderId}");
+            {
+                await transaction.RollbackAsync(cancellationToken);
+
+                return Result<int>.Failure(new AppError(ErrorType.NotFound,"ORDER_NOT_FOUND",$"Order {OrderId} was not found."));
             }
             int affectedRows = await _context.Orders.Where(order => order.OrderId == OrderId && order.status == 0).ExecuteUpdateAsync( setters => setters.SetProperty(order => order.status, 2),cancellationToken);
 
             if (affectedRows != 1)
             {
-                throw new OrderStateConflictException("Order cannot be cancelled.");
+                await transaction.RollbackAsync(cancellationToken);
+
+                return Result<int>.Failure(new AppError(ErrorType.Conflict,"ORDER_CANNOT_BE_CANCELLED","Order is already cancelled or cannot be cancelled."));
             }
            
             foreach (var item in order.Items)
@@ -296,7 +300,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 _logger.LogWarning(ex,"notification failed after cancelling order {OrderId}.", order.OrderId);
             }
 
-
+            return Result<int>.Success(OrderId);
         }
     }
 }

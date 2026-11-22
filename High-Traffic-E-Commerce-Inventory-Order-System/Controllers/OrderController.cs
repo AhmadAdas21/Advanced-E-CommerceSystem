@@ -19,7 +19,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         public async Task<IActionResult>GetOrders(CancellationToken cancellationToken)
         {
             var orders= await orderServices.GetOrders(cancellationToken);
-            return Ok(orders);
+            return Ok(orders.Value);
         }
         [HttpGet("{orderId:int}")]
         public async Task<IActionResult>SearchOrder([FromRoute(Name = "orderId")] int OrderId,CancellationToken cancellationToken)
