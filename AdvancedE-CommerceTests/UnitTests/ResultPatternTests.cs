@@ -48,5 +48,17 @@ namespace AdvancedE_CommerceTests.UnitTests
             //Act and assert
             Assert.Throws<InvalidOperationException>( () => _ = result.Value);
         }
+        [Fact]
+        public void Success_ShouldAcceptZeroValue()
+        {
+            //Arrange
+            var number = 0;
+            //ACT
+            var result=Result<int>.Success(number);
+            //Assert
+            Assert.True(result.IsSuccess);
+            Assert.Equal(0, result.Value);
+            
+        }
     }
 }
