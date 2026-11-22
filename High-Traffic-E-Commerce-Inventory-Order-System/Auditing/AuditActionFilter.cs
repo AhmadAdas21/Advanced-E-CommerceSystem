@@ -11,5 +11,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Auditing
             _scopeFactory = scopeFactory;
             _logger = logger;
         }
-    }
+        public async Task OnActionExecutionAsync(ActionExecutingContext context,ActionExecutionDelegate next)
+        {
+        }
+        }
 }
