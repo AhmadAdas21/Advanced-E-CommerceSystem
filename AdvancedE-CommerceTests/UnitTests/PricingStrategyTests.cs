@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Strategies;
+using Moq;
 
 namespace AdvancedE_CommerceTests.UnitTests
 {
@@ -58,7 +61,16 @@ namespace AdvancedE_CommerceTests.UnitTests
         [Fact]
         public void PricingEngine_ShouldCallStrategyOnce()
         {
+            //Arrange
+            var mockStrategy = new Mock<IPricingPlanStrategy>();
+            mockStrategy.Setup(s => s.PayAmount(100m)).Returns(85m);
+            var engine = new PricingEngine();
 
+            // Act
+            decimal result = engine.CalculatePrice(mockStrategy.Object, 100m);
+            //Assert
+            Assert.Equal(85M, result);
+            mockStrategy.Verify(s => s.PayAmount(100m),Times.Once);
         }
 
     }
