@@ -20,8 +20,7 @@ namespace AdvancedE_CommerceTests.UnitTests
         [Fact]
         public void Failure_ShouldReturnCorrectError()
         {
-            var error = new AppError(ErrorType.Conflict,"INSUFFICIENT_STOCK","Not enough stock"
-             );
+            var error = new AppError(ErrorType.Conflict,"INSUFFICIENT_STOCK","Not enough stock");
 
             // Act
             var result = Result<int>.Failure(error);
