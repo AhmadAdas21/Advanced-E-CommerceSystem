@@ -16,6 +16,7 @@ namespace AdvancedE_CommerceTests.UnitTests
     {
         private readonly DataBaseContext _context;
         private readonly IOrderServices orderServices;
+
         [Fact]
         public void CreateOrder_ShouldFail_WhenOrderItemsAreNull()
         {
@@ -30,7 +31,7 @@ namespace AdvancedE_CommerceTests.UnitTests
             var results = new List<ValidationResult>();
             //Act
 
-            bool isValid = Validator.TryValidateObject(order,new ValidationContext(order),results,validateAllProperties: true );
+            bool isValid = Validator.TryValidateObject(order, new ValidationContext(order), results, validateAllProperties: true);
 
 
 
@@ -54,13 +55,13 @@ namespace AdvancedE_CommerceTests.UnitTests
 
             //Act
 
-            bool isValid = Validator.TryValidateObject(item,new ValidationContext(item),results,validateAllProperties: true);
+            bool isValid = Validator.TryValidateObject(item, new ValidationContext(item), results, validateAllProperties: true);
 
 
             //Assert
             Assert.False(isValid);
 
-            Assert.Contains(results, result =>result.MemberNames.Contains(nameof(CreateOrderItem.Quantity)));
+            Assert.Contains(results, result => result.MemberNames.Contains(nameof(CreateOrderItem.Quantity)));
         }
         [Fact]
         public void CreateOrder_ShouldFail_WhenDuplicateSKUsExist()
@@ -93,5 +94,52 @@ namespace AdvancedE_CommerceTests.UnitTests
             //Assert
             Assert.True(hasDuplicates);
         }
+        [Fact]
+        public void CreateOrder_ShouldFail_WhenRequestIdIsEmpty()
+        {
+            //Arrange
+            var order = new CreateOrder
+            {
+                CustomerId = 1,
+                RequestId = Guid.Empty,
+                Items = new List<CreateOrderItem>
+                {
+                    new CreateOrderItem
+                    {
+                        SKU = "ps-202",
+                        Quantity = 2
+                    }
+                }
+            };
+
+            var results = new List<ValidationResult>();
+
+            //Act
+            bool isValid = order.RequestId != Guid.Empty;
+
+            //Assert
+            Assert.False(isValid);
+
+        }
+        [Fact]
+        public void CreateOrder_ShouldFail_WhenOrderItemsAreEmpty()
+        {
+            //Arrange
+            var order = new CreateOrder
+            {
+                CustomerId= 1,
+                Items= new List<CreateOrderItem>(),
+                 RequestId = Guid.NewGuid(),
+            };
+
+            var results = new List<ValidationResult>();
+            //Act
+            bool isValid = Validator.TryValidateObject(order, new ValidationContext(order), results, validateAllProperties: true);
+
+            //Assert
+            Assert.False(isValid);
+
+        }
+
     }
 }
