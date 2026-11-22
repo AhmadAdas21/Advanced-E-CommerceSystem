@@ -21,4 +21,12 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\High-Traffic-E-Commerce-Inventory-Order-System\High-Traffic-E-Commerce-Inventory-Order-System.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="CuncerrencyTests\" />
+  </ItemGroup>
+
 </Project>
