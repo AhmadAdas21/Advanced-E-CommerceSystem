@@ -30,7 +30,8 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.DataBase
             modelBuilder.Entity<Order>().HasOne(order => order.Customer).WithMany(Customer => Customer.Orders).HasForeignKey(order => order.CustomerId).OnDelete(DeleteBehavior.NoAction);
             
             modelBuilder.Entity<OrderItem>().HasOne(orderItem=>orderItem.Product).WithMany().HasForeignKey(orderItem=>orderItem.ProductId).OnDelete(DeleteBehavior.NoAction);
-           
+            modelBuilder.Entity<Order>().HasIndex(o => o.RequestId).IsUnique();
+
         }
 
     }

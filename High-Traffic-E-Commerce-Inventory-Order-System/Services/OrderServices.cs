@@ -45,6 +45,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 OrderId = order.OrderId,
                 CustomerName = order.Customer?.CustomerName, 
                 TotalAmount = order.TotalAmount,
+
             }).ToList();
 
             return ordersResult;
@@ -87,13 +88,23 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             {
                 throw new Exception("theres dublicated SKU in some products in the order");
             }
+            if (order.RequestId == Guid.Empty)
+            {
+                throw new ArgumentException("RequestId is required.");
+            }
+            var requestExists = await _context.Orders.AsNoTracking().AnyAsync(o => o.RequestId == order.RequestId,cancellationToken);
 
+            if (requestExists)
+            {
+                throw new OrderStateConflictException("An order with this RequestId already exists.");
+            }
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             var newOrder = new Order
             {
                 CustomerId = order.CustomerId,
                 Items = new List<OrderItem>(),
-                TotalAmount = 0
+                TotalAmount = 0,
+                RequestId = order.RequestId,
 
             };
 
@@ -117,7 +128,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
                 if (affectedRows != 1)
                 {
-                    throw new InvalidOperationException( $"invalid stock for product with sku value  {item.SKU}");
+                    throw new OrderStateConflictException($"Insufficient stock or inactive product: {item.SKU}");
                 }
                 decimal unitPrice = decimal.Round( _pricingEngine.CalculatePrice(strategy, product.ProductPrice),2,MidpointRounding.AwayFromZero);
 
