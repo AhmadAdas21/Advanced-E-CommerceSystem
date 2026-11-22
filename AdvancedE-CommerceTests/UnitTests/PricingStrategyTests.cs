@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Models;
 using High_Traffic_E_Commerce_Inventory_Order_System.PricingEngine.Strategies;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace AdvancedE_CommerceTests.UnitTests
@@ -71,6 +74,50 @@ namespace AdvancedE_CommerceTests.UnitTests
             //Assert
             Assert.Equal(85M, result);
             mockStrategy.Verify(s => s.PayAmount(100m),Times.Once);
+        }
+        [Fact]
+        public void discount_excuted_by_just_one_pricingStrategy()
+        {
+            //Arrange
+            var now = DateTimeOffset.UtcNow;
+
+            var rules = new PricingRulesOptions
+            {
+                FlashSale = new PromotionWindow
+                {
+                    Enabled = true,
+                    StartUtc = now.AddDays(-1),
+                    EndUtc = now.AddDays(1)
+                },
+                Seasonal = new PromotionWindow
+                {
+                    Enabled = true,
+                    StartUtc = now.AddDays(-1),
+                    EndUtc = now.AddDays(1)
+                }
+            };
+            var originalPrice = 100m;
+            var mockStratigies = new Mock<IOptions<PricingRulesOptions>>();
+
+            mockStratigies.Setup(o => o.Value).Returns(rules);
+
+            var customer = new Customer
+            {
+                IsVip = true
+            };
+
+            var selector = new PricingStrategySelector(mockStratigies.Object);
+            var engine = new PricingEngine();
+
+            //Act
+            var selectedStrategy = selector.SelectPricingStrategy(customer, now);
+
+            decimal finalPrice = engine.CalculatePrice(selectedStrategy, originalPrice);
+
+            // Assert
+            Assert.IsType<BlackFridayDiscount>(selectedStrategy);
+
+            Assert.Equal(60m, finalPrice);
         }
 
     }
