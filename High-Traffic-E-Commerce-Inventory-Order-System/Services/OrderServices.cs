@@ -53,7 +53,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
         }
         public async Task<Result<GetOrders>> SearchOrder(int orderId,CancellationToken cancellationToken)
         {
-            var order =await _context.Orders.AsNoTracking().FirstOrDefaultAsync(order=>order.OrderId== orderId);
+            var order =await _context.Orders.AsNoTracking().Include(o => o.Customer).FirstOrDefaultAsync(order=>order.OrderId== orderId);
             if (order == null)
             {
                 return Result<GetOrders>.Failure(new AppError( ErrorType.NotFound,"ORDER_NOT_FOUND",$"order with this id:{orderId} is not found."
