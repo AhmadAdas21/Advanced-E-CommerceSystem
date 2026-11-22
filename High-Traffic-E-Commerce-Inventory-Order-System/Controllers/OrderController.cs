@@ -81,10 +81,42 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         [HttpPatch]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult>CancelOrder(int orderId,[FromBody] CancelOrder order,CancellationToken cancellationToken )
+        public async Task<IActionResult> CancelOrder(int orderId, [FromBody] CancelOrder order, CancellationToken cancellationToken)
         {
-            await orderServices.CancelOrder(orderId, order, cancellationToken);
-            return Ok();
+            var cancelledOrder = await orderServices.CancelOrder(orderId, order, cancellationToken);
+            if (cancelledOrder.IsSuccess)
+            {
+                return Ok(new
+                {
+                    Message = "Order cancelled successfully",
+                    OrderId = cancelledOrder.Value
+                });
+            }
+
+            var error = cancelledOrder.Error;
+
+            return error.Type switch
+            {
+                ErrorType.Validation => BadRequest(new
+                {
+                    error.Code,
+                    error.Message
+                }),
+
+                ErrorType.NotFound => NotFound(new
+                {
+                    error.Code,
+                    error.Message
+                }),
+
+                ErrorType.Conflict => Conflict(new
+                {
+                    error.Code,
+                    error.Message
+                }),
+
+                _ => StatusCode(500)
+            };
         }
         
         
