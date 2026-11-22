@@ -1,4 +1,5 @@
 ﻿using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
+using High_Traffic_E_Commerce_Inventory_Order_System.ResultPattern;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.interfaces
 {
@@ -8,7 +9,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.interfaces
         
         public Task CancelOrder(int OrderId,CancelOrder Order,CancellationToken cancellationToken);
         public Task<List<GetOrders>> GetOrders(CancellationToken cancellationToken);
-        public Task<GetOrders>SearchOrder(int OrderId,CancellationToken cancellationToken);
+        Task<Result<GetOrders>> SearchOrder(int OrderId,CancellationToken cancellationToken);
 
     }
 }

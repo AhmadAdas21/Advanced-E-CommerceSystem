@@ -1,5 +1,6 @@
 ﻿using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
+using High_Traffic_E_Commerce_Inventory_Order_System.ResultPattern;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,7 +25,35 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Controllers
         public async Task<IActionResult>SearchOrder([FromRoute(Name = "orderId")] int OrderId,CancellationToken cancellationToken)
         {
             var order =await orderServices.SearchOrder(OrderId,cancellationToken);
-            return Ok(order);
+            if (order.IsSuccess)
+            {
+                return Ok(order.Value);
+            }
+
+            var error = order.Error;
+
+            return error.Type switch
+            {
+                ErrorType.NotFound => NotFound(new
+                {
+                    error.Code,
+                    error.Message
+                }),
+
+                ErrorType.Validation => BadRequest(new
+                {
+                    error.Code,
+                    error.Message
+                }),
+
+                ErrorType.Conflict => Conflict(new
+                {
+                    error.Code,
+                    error.Message
+                }),
+
+                _ => StatusCode(500)
+            };
         }
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody]CreateOrder order, CancellationToken cancellationToken)

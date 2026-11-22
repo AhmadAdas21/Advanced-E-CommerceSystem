@@ -11,6 +11,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
 using System.Threading.Channels;
+using High_Traffic_E_Commerce_Inventory_Order_System.ResultPattern;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
@@ -50,12 +51,14 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 
             return ordersResult;
         }
-        public async Task<GetOrders>SearchOrder(int OrderId,CancellationToken cancellationToken)
+        public async Task<Result<GetOrders>> SearchOrder(int orderId,CancellationToken cancellationToken)
         {
-            var order =await _context.Orders.FirstOrDefaultAsync(order=>order.OrderId== OrderId);
+            var order =await _context.Orders.AsNoTracking().FirstOrDefaultAsync(order=>order.OrderId== orderId);
             if (order == null)
             {
-                throw new Exception($"there is no order with this id {OrderId}");
+                return Result<GetOrders>.Failure(new AppError( ErrorType.NotFound,"ORDER_NOT_FOUND",$"order with this id:{orderId} is not found."
+           )
+       );
             }
             var orderResult = new GetOrders
             {
@@ -63,7 +66,7 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
                 CustomerName = order.Customer?.CustomerName,
                 TotalAmount = order.TotalAmount,
             };
-            return orderResult;
+            return Result<GetOrders>.Success(orderResult); 
         }
         public async Task CreateOrder(CreateOrder order, CancellationToken cancellationToken)
         {
