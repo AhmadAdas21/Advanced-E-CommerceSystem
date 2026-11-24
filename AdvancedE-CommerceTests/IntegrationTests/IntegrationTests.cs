@@ -1,46 +1,65 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Net.Http.Json;
+using System.Text;
 using System.Threading.Tasks;
 using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
+using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
+
 
 namespace AdvancedE_CommerceTests.IntegrationTests
 {
-    public class IntegrationTests
+    public class IntegrationTests: IClassFixture<WebApplicationFactory<Program>>
     {
-        private readonly DataBaseContext database;
-        private readonly OrderServices orderServices;
-        private readonly ProductServices productServices;
-        private readonly CustomerServices customerServices;
+       
         private readonly HttpClient client;
-        private readonly WebApplicationFactory<Program> webApplicationFactory;
-        public IntegrationTests(DataBaseContext database, OrderServices orderServices, ProductServices productServices, CustomerServices customerServices, HttpClient client, WebApplicationFactory<Program> webApplicationFactory)
+        private readonly WebApplicationFactory<Program> factory;
+        public IntegrationTests( WebApplicationFactory<Program> factory)
         {
-            this.database = database;
-            this.orderServices = orderServices;
-            this.productServices = productServices;
-            this.customerServices = customerServices;
-            this.client = client;
-            this.webApplicationFactory = webApplicationFactory;
+            this.factory = factory;
+            client = factory.CreateClient();
         }
 
 
         [Fact]
         public async Task CreateProduct_ShouldReturn201_AndPersistToDatabase()
         {
+            var product = new CreateProduct
+            {
+                IsActive = true,
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                AvailableStock = 100,
+                ProductName = "apple juice",
+                ProductDescription = "sd,lsv,ldf,vldfv,lfv,ldf,vldf,vldf,vldf,vld,",
+                ProductPrice = 20,
+            };
+            var response = await client.PostAsJsonAsync("/api/product", product);
 
+            Assert.NotNull(response);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode); 
         }
         [Fact]
         public async Task CreateProduct_ShouldReturn400_WhenProductIsInvalid()
         {
+            var product = new CreateProduct
+            {
+                IsActive = true,
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                AvailableStock = -199,
+                ProductName = "apple juice",
+                ProductDescription = "sd,lsv,ldf,vldfv,lfv,ldf,vldf,vldf,vldf,vld,",
+                ProductPrice = 0,
+            };
 
+            var response=await client.PostAsJsonAsync("/api/product", product);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
         [Fact]
         public async Task UpdateProduct_ShouldPersistChanges_AndInvalidateCache()
         {
-
+            
         }
         [Fact]
         public async Task CreateCustomer_ShouldPersistCustomerToDatabase()
