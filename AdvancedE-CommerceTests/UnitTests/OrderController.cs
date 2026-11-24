@@ -158,6 +158,49 @@ namespace AdvancedE_CommerceTests.UnitTests
 
 
         }
+        [Fact]
+        public async Task SearchOrder_ShouldReturn200_WhenOrderExists()
+        {
+            var mock =new Mock<IOrderServices>();
+            var order = new GetOrders
+            {
+                OrderId = 1,
+                CustomerName = "Ahmad",
+                TotalAmount = 150m
+            };
+            mock.Setup(s => s.SearchOrder( 1,It.IsAny<CancellationToken>())).ReturnsAsync(Result<GetOrders>.Success(order));
+            var controller = new OrderController(mock.Object);
+            //Act
+            var response = await controller.SearchOrder(1,CancellationToken.None);
+            //Assert
+            var result= Assert.IsType<OkObjectResult>(response);
+            Assert.Equal(200,result.StatusCode);
+        }
+        [Fact]
+        public async Task CreateOrder_ShouldReturn404_WhenCustomerNotFound()
+        {
+            var mock = new Mock<IOrderServices>();
+            var order = new CreateOrder
+            {
+                CustomerId = 99999,
+                RequestId = Guid.NewGuid(),
+                Items = new List<CreateOrderItem>
+                    {
+                       new CreateOrderItem
+                          {
+                            SKU = "pp-205",
+                            Quantity = 1
+                          }
+                    }
+
+            };
+            mock.Setup(s => s.CreateOrder(order,It.IsAny<CancellationToken>())).ReturnsAsync(Result<int>.Failure(new AppError(ErrorType.NotFound,"CUSTOMER_NOT_FOUND","Customer 99999 not found.")));
+            var controller = new OrderController(mock.Object);
+            var response= await controller.CreateOrder(order,cancellationToken: CancellationToken.None);
+            var result = Assert.IsType<NotFoundObjectResult>(response);
+            Assert.Equal(404,result.StatusCode);
+
+        }
 
 
 
