@@ -128,7 +128,7 @@ namespace AdvancedE_CommerceTests.UnitTests
             var cancelOrderDto = new CancelOrder
             {
                 OrderId = 1,
-                Status = 2
+                Status = 1
             };
 
             mock.Setup(s => s.CancelOrder(1,cancelOrderDto, It.IsAny<CancellationToken>())).ReturnsAsync(Result<int>.Success(1));
@@ -143,6 +143,19 @@ namespace AdvancedE_CommerceTests.UnitTests
         [Fact]
         public async Task CancelOrder_ShouldReturn409_WhenOrderAlreadyCancelled()
         {
+            var mock = new Mock<IOrderServices>();
+            var cancelOrder = new CancelOrder
+            {
+                OrderId = 1,
+                Status = 2
+            };
+            mock.Setup(s => s.CancelOrder(1, cancelOrder, It.IsAny<CancellationToken>())).ReturnsAsync(Result<int>.Failure(
+            new AppError(ErrorType.Conflict, "ORDER_CANNOT_BE_CANCELLED","Order is already cancelled or cannot be cancelled.")));
+            var controller = new OrderController(mock.Object);
+            var response = await controller.CancelOrder(1,cancelOrder,CancellationToken.None);
+            var result= Assert.IsType<ConflictObjectResult>(response);
+            Assert.Equal(409,result.StatusCode);
+
 
         }
 
