@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
+using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -101,12 +102,41 @@ namespace AdvancedE_CommerceTests.IntegrationTests
         [Fact]
         public async Task CreateOrder_ShouldReturn409_WhenStockIsInsufficient()
         {
+            var order = new CreateOrder
+            {
+                CustomerId = 1,
+                RequestId = Guid.NewGuid(),
+                Items = new List<CreateOrderItem>
+                {
+                    new CreateOrderItem
+                    {
+                        SKU = "PS-021",
+                        Quantity = 100000,
+                    }
+                }
+            };
 
+            var response = await client.PostAsJsonAsync("/api/orders", order);
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode); 
         }
         [Fact]
         public async Task CreateOrder_ShouldReturn404_WhenCustomerNotFound()
         {
-
+            var order = new CreateOrder
+            {
+                CustomerId=8000,
+                RequestId= Guid.NewGuid(),
+                Items=new List<CreateOrderItem>
+                {
+                    new CreateOrderItem
+                    {
+                        SKU="iou-323-1",
+                        Quantity=1,
+                    }
+                }
+            };
+            var response =await client.PostAsJsonAsync("/api/orders",order);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
         [Fact]
         public async Task CreateOrder_ShouldPreventDuplicateRequestId()
