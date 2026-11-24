@@ -144,6 +144,28 @@ namespace AdvancedE_CommerceTests.UnitTests
         [Fact]
         public async Task CreateProduct_ShouldInvalidateCache_AfterSuccessfulCreation()
         {
+            var mock = new Mock<IDistributedCache>();
+            var options = new DbContextOptionsBuilder<DataBaseContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+
+            using var db = new DataBaseContext(options);
+            var product = new CreateProduct
+            {
+                SKU = "pp-205",
+                ProductName = "Database Product",
+                ProductPrice = 100m,
+                ProductDescription = "Test product",
+                AvailableStock = 25,
+                IsActive = true
+            };
+            mock.Setup(c => c.RemoveAsync("products:v2:all", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+            var service = new ProductServices(db,mock.Object,Mock.Of<ILogger<ProductServices>>());
+            await service.CreateProduct(product, CancellationToken.None);
+            var savedProduct = await db.Products.SingleAsync();
+
+            Assert.Equal("Database Product", savedProduct.ProductName);
+
+            mock.Verify(c => c.RemoveAsync("products:v2:all",CancellationToken.None),Times.Once);
 
         }
         
