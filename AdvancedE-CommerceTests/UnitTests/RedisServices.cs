@@ -111,17 +111,41 @@ namespace AdvancedE_CommerceTests.UnitTests
         [Fact]
         public async Task GetAllProducts_ShouldFallbackToDatabase_WhenRedisUnavailable()
         {
+            // Arrange
+            var options = new DbContextOptionsBuilder<DataBaseContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
 
+            using var db = new DataBaseContext(options);
+
+            db.Products.Add(new Product
+            {
+                ProductId = 1,
+                SKU = "pp-205",
+                ProductName = "Database Product",
+                ProductPrice = 100m,
+                ProductDescription = "Test product",
+                AvailableStock = 25,
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+            var mock= new Mock<IDistributedCache>();
+
+            mock.Setup(c => c.GetAsync("products:v2:all",It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Redis unavailable"));
+            mock.Setup(c => c.SetAsync("products:v2:all",It.IsAny<byte[]>(),It.IsAny<DistributedCacheEntryOptions>(),It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Redis unavailable"));
+            var service = new ProductServices(db,mock.Object,Mock.Of<ILogger<ProductServices>>());
+
+            var result = await service.GetAllProducts(CancellationToken.None);
+            var product = Assert.Single(result);
+
+            Assert.Equal("Database Product", product.ProductName);
+            Assert.Equal(25, product.AvailableStock);
+
+            mock.Verify(c => c.GetAsync("products:v2:all",It.IsAny<CancellationToken>()),Times.Exactly(2));
         }
         [Fact]
         public async Task CreateProduct_ShouldInvalidateCache_AfterSuccessfulCreation()
         {
 
         }
-        [Fact]
-        public async Task SearchProduct_ShouldUseCurrentStock_WhenCacheHit()
-        {
-
-        }
+        
     }
 }
