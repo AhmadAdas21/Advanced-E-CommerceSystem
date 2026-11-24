@@ -6,7 +6,10 @@ using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 
 
 namespace AdvancedE_CommerceTests.IntegrationTests
@@ -59,7 +62,31 @@ namespace AdvancedE_CommerceTests.IntegrationTests
         [Fact]
         public async Task UpdateProduct_ShouldPersistChanges_AndInvalidateCache()
         {
+            var product = new CreateProduct
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Apple Juice",
+                ProductDescription = "Test Product",
+                ProductPrice = 100m,
+                AvailableStock = 25,
+                IsActive = true
+            };
             
+            var response= await client.PostAsJsonAsync("/api/product", product);
+            Assert.Equal(HttpStatusCode.Created,response.StatusCode);
+            using var scope = factory.Services.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+            var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+
+            var savedProduct = await database.Products.AsNoTracking().SingleAsync(p => p.SKU == product.SKU);
+            var getResponse = await client.GetAsync("/api/product");
+            Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+            var cachedData = await cache.GetStringAsync("products:v2:all");
+
+            Assert.NotNull(cachedData);
+
         }
         [Fact]
         public async Task CreateCustomer_ShouldPersistCustomerToDatabase()
