@@ -4,6 +4,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.Controllers;
 using High_Traffic_E_Commerce_Inventory_Order_System.interfaces;
 using High_Traffic_E_Commerce_Inventory_Order_System.ResultPattern;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 
 namespace AdvancedE_CommerceTests.UnitTests
 {
@@ -91,11 +92,53 @@ namespace AdvancedE_CommerceTests.UnitTests
         [Fact]
         public async Task CreateOrder_ShouldReturn409_WhenStockIsInsufficient()
         {
+            var mock = new Mock<IOrderServices>();
+
+            var createOrderDto = new CreateOrder
+            {
+                CustomerId = 1,
+                RequestId = Guid.NewGuid(),
+                Items = new List<CreateOrderItem>
+                 {
+                    new CreateOrderItem
+                    {
+                         SKU = "pp-205",
+                         Quantity = 100
+                    } 
+                }
+            };
+            mock.Setup(s => s.CreateOrder(createOrderDto,It.IsAny<CancellationToken>())).ReturnsAsync(Result<int>.Failure(
+            new AppError(ErrorType.Conflict,"INSUFFICIENT_STOCK","Insufficient stock for product pp-205.")));
+
+            var controller = new OrderController(mock.Object);
+            //act
+            var response = await controller.CreateOrder(createOrderDto,CancellationToken.None);
+
+            //Arrange
+            var result= Assert.IsType<ConflictObjectResult>(response);
+            Assert.Equal(409,result.StatusCode);
+
 
         }
         [Fact]
         public async Task CancelOrder_ShouldReturn200_WhenCancellationSucceeds()
         {
+            //Arrange
+            var mock = new Mock<IOrderServices>();
+            var cancelOrderDto = new CancelOrder
+            {
+                OrderId = 1,
+                Status = 2
+            };
+
+            mock.Setup(s => s.CancelOrder(1,cancelOrderDto, It.IsAny<CancellationToken>())).ReturnsAsync(Result<int>.Success(1));
+            var controller = new OrderController(mock.Object);
+            //Act
+            var response = await controller.CancelOrder(1,cancelOrderDto,CancellationToken.None);
+            var result=Assert.IsType<OkObjectResult>(response);
+            //Assert
+            Assert.Equal(200,result.StatusCode);
+
         }
         [Fact]
         public async Task CancelOrder_ShouldReturn409_WhenOrderAlreadyCancelled()
