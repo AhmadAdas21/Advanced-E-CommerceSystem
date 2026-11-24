@@ -71,20 +71,39 @@ namespace AdvancedE_CommerceTests.UnitTests
             var createOrderDto = new High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s.CreateOrder
             {
                 CustomerId = 1,
-                Items = new List<CreateOrderItem>
-                {
-                    new CreateOrderItem
-                    {
-                        Quantity = 1,
-                        SKU="pp-205",
-                    }
-                },
+                Items = null,
 
                 RequestId = Guid.NewGuid(),
             };
+            mock.Setup(s => s.CreateOrder(createOrderDto, It.IsAny<CancellationToken>())).ReturnsAsync(Result<int>.Failure( new AppError(ErrorType.Validation,"INVALID_ORDER", "Invalid order request." )));
+            var controller = new OrderController(mock.Object);
+            // Act
+            var response = controller.CreateOrder(createOrderDto, CancellationToken.None).Result;
+            var result = Assert.IsType<BadRequestObjectResult>(response);
+            //Assert
+            Assert.Equal(400,result.StatusCode);
+            mock.Verify(s => s.CreateOrder(createOrderDto, It.IsAny<CancellationToken>()), Times.Once);
+
+
+
 
         }
-       
-        
+        [Fact]
+        public async Task CreateOrder_ShouldReturn409_WhenStockIsInsufficient()
+        {
+
+        }
+        [Fact]
+        public async Task CancelOrder_ShouldReturn200_WhenCancellationSucceeds()
+        {
+        }
+        [Fact]
+        public async Task CancelOrder_ShouldReturn409_WhenOrderAlreadyCancelled()
+        {
+
+        }
+
+
+
     }
 }
