@@ -1,0 +1,18 @@
+﻿using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
+
+namespace High_Traffic_E_Commerce_Inventory_Order_System.models.OrderModel
+{
+    public class Order
+    {
+        public int OrderId { get; init; }
+        public int CustomerId { get; set; }
+        public List<OrderItem> Items { get; set; } = new();
+        public decimal TotalAmount { get; set; } = 0;
+        public Customer Customer { get; set; }
+        
+        public int status { get; set; } = 0;// 0 is pending , 1 completed ,2 cancelled
+        public Guid RequestId { get; set; }
+
+
+    }
+}
