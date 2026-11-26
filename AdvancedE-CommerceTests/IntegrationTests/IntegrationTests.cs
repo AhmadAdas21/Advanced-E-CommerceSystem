@@ -273,6 +273,59 @@ namespace AdvancedE_CommerceTests.IntegrationTests
         [Fact]
         public async Task CancelOrder_ShouldRestoreStock_AndUpdateStatus()
         {
+            using var scope = factory.Services.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+            var customer = new Customer
+            {
+                CustomerName = "Test Customer",
+                CustomerEmail = $"{Guid.NewGuid():N}@test.com",
+                CustomerPhone = "0591234567",
+                IsVip = false
+            };
+            var product = new Product
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Test Product",
+                ProductDescription = "Integration Test",
+                ProductPrice = 100m,
+                AvailableStock = 25,
+                IsActive = true
+            };
+
+            database.Customers.Add(customer);
+            database.Products.Add(product);
+
+            await database.SaveChangesAsync();
+            var order1 = new CreateOrder
+            {
+                CustomerId = customer.CustomerId,
+                RequestId = Guid.NewGuid(),
+                Items = new List<CreateOrderItem>
+                {
+                    new CreateOrderItem
+                    {
+                        SKU = product.SKU,
+                        Quantity = 1,
+                    }
+                }
+            };
+            var response1 = await client.PostAsJsonAsync("/api/orders", order1);
+            Assert.Equal(HttpStatusCode.Created, response1.StatusCode);
+            var productAfterOrder = await database.Products.AsNoTracking().FirstOrDefaultAsync(x=>x.SKU== product.SKU);
+            Assert.Equal(24, productAfterOrder.AvailableStock);
+            var savedOrder = await database.Orders.AsNoTracking().SingleAsync(x => x.RequestId == order1.RequestId);
+            var cancelOrder = new CancelOrder
+            {
+                OrderId = savedOrder.OrderId,
+                Status = 2
+            };
+            var cancelling = await client.PatchAsJsonAsync($"/api/orders?orderId={savedOrder.OrderId}",cancelOrder);
+
+            Assert.Equal(HttpStatusCode.OK, cancelling.StatusCode);
+            var productAfterCanellation=await database.Products.AsNoTracking().FirstOrDefaultAsync(x=>x.SKU== product.SKU);
+            Assert.Equal(25, productAfterCanellation.AvailableStock);
 
         }
         [Fact]
