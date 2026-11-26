@@ -10,6 +10,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
 using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AdvancedE_CommerceTests.CuncerrencyTests
@@ -81,11 +82,92 @@ namespace AdvancedE_CommerceTests.CuncerrencyTests
             Assert.Equal(initialStock, successfulOrders);
 
             Assert.Equal(concurrentRequests-initialStock, rejectedOrders);
+            var productAfterOrders = await database.Products.AsNoTracking().SingleAsync(p => p.SKU == product.SKU);
+
+            Assert.Equal(0, productAfterOrders.AvailableStock);
+
+            var persistedOrdersCount = await database.Orders.CountAsync(o => o.CustomerId == customer.CustomerId);
+
+            Assert.Equal(initialStock, persistedOrdersCount);
         }
 
         [Fact]
         public async Task ConcurrentOrders_ShouldPreventDuplicateRequestId()
         {
+            using var scope = factory.Services.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+            const int initialStock = 100;
+            const int concurrentRequests = 50;
+            var customer = new Customer
+            {
+                CustomerName = "Test Customer",
+                CustomerEmail = $"{Guid.NewGuid():N}@test.com",
+                CustomerPhone = "0591234567",
+                IsVip = false
+            };
+
+            var product = new Product
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Test Product",
+                ProductDescription = "Concurrency Test",
+                ProductPrice = 100m,
+                AvailableStock = initialStock,
+                IsActive = true
+            };
+
+            database.Customers.Add(customer);
+            database.Products.Add(product);
+
+            await database.SaveChangesAsync();
+
+           
+            var requestId = Guid.NewGuid();
+
+            var tasks = new List<Task<HttpResponseMessage>>();
+
+           
+            for (int i = 0; i < concurrentRequests; i++)
+            {
+                var order = new CreateOrder
+                {
+                    CustomerId = customer.CustomerId,
+                    RequestId = requestId,
+                    Items = new List<CreateOrderItem>
+                    {
+                       new CreateOrderItem
+                       {
+                         SKU = product.SKU,
+                         Quantity = 1
+                       }
+                    }
+                };
+
+                tasks.Add(client.PostAsJsonAsync("/api/orders", order));
+            }
+
+            var responses = await Task.WhenAll(tasks);
+
+          
+            var successfulOrders = responses.Count(r => r.StatusCode == HttpStatusCode.Created);
+
+            var rejectedOrders = responses.Count(r => r.StatusCode == HttpStatusCode.Conflict);
+
+            Assert.Equal(1, successfulOrders);
+
+            Assert.Equal(concurrentRequests - 1, rejectedOrders);
+
+           
+            var persistedOrdersCount = await database.Orders .CountAsync(o => o.RequestId == requestId);
+
+            Assert.Equal(1, persistedOrdersCount);
+
+            
+            var productAfterOrders = await database.Products.AsNoTracking().SingleAsync(p => p.SKU == product.SKU);
+
+            Assert.Equal(initialStock-1, productAfterOrders.AvailableStock);
 
         }
 
