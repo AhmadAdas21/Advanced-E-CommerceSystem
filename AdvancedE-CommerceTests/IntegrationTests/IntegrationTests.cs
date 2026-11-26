@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.CustomerDto_s;
@@ -114,6 +115,11 @@ namespace AdvancedE_CommerceTests.IntegrationTests
             var cacheAfterUpdate = await cache.GetStringAsync("products:v2:all");
 
             Assert.Null(cacheAfterUpdate);
+            Assert.Equal(200m, productAfterUpdate.ProductPrice);
+            Assert.Equal(50, productAfterUpdate.AvailableStock);
+            Assert.Equal("Updated Apple Juice", productAfterUpdate.ProductName);
+
+            Assert.Null(await cache.GetStringAsync(productCacheKey));
 
         }
         [Fact]
@@ -370,7 +376,87 @@ namespace AdvancedE_CommerceTests.IntegrationTests
         [Fact]
         public async Task GetProducts_ShouldReturnUpdatedData_AfterCacheInvalidation()
         {
+            using var scope = factory.Services.CreateScope();
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+            var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+            const string cacheKey = "products:v2:all";
 
+            var product = new CreateProduct
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Apple Juice",
+                ProductDescription = "Integration Test",
+                ProductPrice = 100m,
+                AvailableStock = 25,
+                IsActive = true
+            };
+            var createResponse = await client.PostAsJsonAsync("/api/product", product);
+
+            Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+            var savedProduct = await database.Products.AsNoTracking().SingleAsync(p => p.SKU == product.SKU);
+            var firstResponse = await client.GetAsync("/api/product");
+
+            Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+            var productsBefore = await firstResponse.Content.ReadFromJsonAsync<List<GetProducts>>();
+
+            Assert.NotNull(productsBefore);
+
+            var productBeforeUpdate = productsBefore.Single(p => p.SKU == product.SKU);
+
+            Assert.Equal(100m, productBeforeUpdate.ProductPrice);
+
+            var cachedDataBefore = await cache.GetStringAsync(cacheKey);
+
+            Assert.NotNull(cachedDataBefore);
+
+            var cachedProductsBefore = JsonSerializer.Deserialize<List<CachedProduct>>(cachedDataBefore);
+
+            Assert.NotNull(cachedProductsBefore);
+
+            Assert.Equal(100m, cachedProductsBefore.Single(p => p.SKU == product.SKU).ProductPrice);
+            var updatedProduct = new UpdateProduct
+            {
+                SKU = product.SKU,
+                ProductName = "Updated Apple Juice",
+                ProductDescription = "Updated Description",
+                ProductPrice = 200m,
+                AvailableStock = 50,
+                IsActive = true
+            };
+            var updateResponse = await client.PutAsJsonAsync( $"/api/product/id/{savedProduct.ProductId}", updatedProduct);
+
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode); 
+            Assert.Null(await cache.GetStringAsync(cacheKey));
+           
+            var secondResponse = await client.GetAsync("/api/product");
+
+            Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+
+            var productsAfter = await secondResponse.Content.ReadFromJsonAsync<List<GetProducts>>();
+            Assert.NotNull(productsAfter);
+
+            var productAfterUpdate = productsAfter.Single(p => p.SKU == product.SKU);
+
+            
+            Assert.Equal(200m, productAfterUpdate.ProductPrice);
+            Assert.Equal(50, productAfterUpdate.AvailableStock);
+            Assert.Equal("Updated Apple Juice",
+                productAfterUpdate.ProductName);
+
+          
+            var cachedDataAfter = await cache.GetStringAsync(cacheKey);
+
+            Assert.NotNull(cachedDataAfter);
+            var cachedProductsAfter = JsonSerializer.Deserialize<List<CachedProduct>>(cachedDataAfter);
+
+
+
+            Assert.NotNull(cachedProductsAfter);
+            var cachedProduct = cachedProductsAfter.Single(p => p.SKU == product.SKU);
+            Assert.Equal(200m, cachedProduct.ProductPrice);
+            Assert.Equal("Updated Apple Juice", cachedProduct.ProductName);
         }
     }
 }
