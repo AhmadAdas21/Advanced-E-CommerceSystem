@@ -6,6 +6,8 @@ using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.CustomerDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
 using High_Traffic_E_Commerce_Inventory_Order_System.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -98,32 +100,88 @@ namespace AdvancedE_CommerceTests.IntegrationTests
         [Fact]
         public async Task CreateOrder_ShouldPersistOrder_AndReduceStock()
         {
+            using var scope = factory.Services.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+            var customer = new Customer
+            {
+                CustomerName = "Test Customer",
+                CustomerEmail = $"{Guid.NewGuid():N}@test.com",
+                CustomerPhone = "0591234567",
+                IsVip = false
+            };
+            var product = new Product
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Test Product",
+                ProductDescription = "Integration Test",
+                ProductPrice = 100m,
+                AvailableStock = 25,
+                IsActive = true
+            };
+
+            database.Customers.Add(customer);
+            database.Products.Add(product);
+
+            await database.SaveChangesAsync();
             var order = new CreateOrder
             {
-                CustomerId=1,
+                CustomerId=customer.CustomerId,
                 RequestId=Guid.NewGuid(),
                 Items =new List<CreateOrderItem>
                 {
                     new CreateOrderItem
                     {
-
+                        SKU=product.SKU,
+                        Quantity=10,
                     }
                 }
 
             };
+            var response= await client.PostAsJsonAsync("/api/orders", order);
+            var productAfterOrder = await database.Products.FirstOrDefaultAsync(x => x.SKU == product.SKU);
+            
+            Assert.Equal(15, productAfterOrder.AvailableStock);
+            
         }
         [Fact]
         public async Task CreateOrder_ShouldReturn409_WhenStockIsInsufficient()
         {
+            using var scope = factory.Services.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+            var customer = new Customer
+            {
+                CustomerName = "Test Customer",
+                CustomerEmail = $"{Guid.NewGuid():N}@test.com",
+                CustomerPhone = "0591234567",
+                IsVip = false
+            };
+            var product = new Product
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Test Product",
+                ProductDescription = "Integration Test",
+                ProductPrice = 100m,
+                AvailableStock = 25,
+                IsActive = true
+            };
+
+            database.Customers.Add(customer);
+            database.Products.Add(product);
+
+            await database.SaveChangesAsync();
             var order = new CreateOrder
             {
-                CustomerId = 1,
+                CustomerId = customer.CustomerId,
                 RequestId = Guid.NewGuid(),
                 Items = new List<CreateOrderItem>
                 {
                     new CreateOrderItem
                     {
-                        SKU = "PS-021",
+                        SKU = product.SKU,
                         Quantity = 100000,
                     }
                 }
