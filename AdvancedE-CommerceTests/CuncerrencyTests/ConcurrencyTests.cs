@@ -337,7 +337,7 @@ namespace AdvancedE_CommerceTests.CuncerrencyTests
             database.Products.Add(product);
             await database.SaveChangesAsync();
 
-            var productUrl = $"/api/products/{product.SKU}";
+            var productUrl = $"/api/product/id/{product.ProductId}";
 
             var firstTasks = new List<Task<HttpResponseMessage>>();
 
