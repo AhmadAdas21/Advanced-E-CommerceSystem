@@ -12,6 +12,7 @@ using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem.Interface
 using High_Traffic_E_Commerce_Inventory_Order_System.NotifcationSystem;
 using System.Threading.Channels;
 using High_Traffic_E_Commerce_Inventory_Order_System.ResultPattern;
+using Microsoft.Data.SqlClient;
 
 namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
 {
@@ -160,8 +161,17 @@ namespace High_Traffic_E_Commerce_Inventory_Order_System.Services
             }
             _context.Orders.Add(newOrder);
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+
+                return Result<int>.Failure(new AppError(ErrorType.Conflict, "DUPLICATE_REQUEST", "An order with this RequestId already exists."));
+            }
 
             try
             {
