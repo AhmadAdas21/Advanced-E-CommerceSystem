@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
+using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.CustomerDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.ProductDto_s;
 using High_Traffic_E_Commerce_Inventory_Order_System.Services;
@@ -87,7 +88,7 @@ namespace AdvancedE_CommerceTests.IntegrationTests
             var cachedData = await cache.GetStringAsync("products:v2:all");
 
             Assert.NotNull(cachedData);
-
+           
         }
         [Fact]
         public async Task CreateCustomer_ShouldPersistCustomerToDatabase()
@@ -97,7 +98,19 @@ namespace AdvancedE_CommerceTests.IntegrationTests
         [Fact]
         public async Task CreateOrder_ShouldPersistOrder_AndReduceStock()
         {
+            var order = new CreateOrder
+            {
+                CustomerId=1,
+                RequestId=Guid.NewGuid(),
+                Items =new List<CreateOrderItem>
+                {
+                    new CreateOrderItem
+                    {
 
+                    }
+                }
+
+            };
         }
         [Fact]
         public async Task CreateOrder_ShouldReturn409_WhenStockIsInsufficient()
