@@ -95,6 +95,21 @@ namespace AdvancedE_CommerceTests.IntegrationTests
         [Fact]
         public async Task CreateCustomer_ShouldPersistCustomerToDatabase()
         {
+            using var scope = factory.Services.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+            var customer = new Customer
+            {
+                CustomerName = "Test Customer",
+                CustomerEmail = $"{Guid.NewGuid():N}@test.com",
+                CustomerPhone = "0591234567",
+                IsVip = false
+            };
+            await database.AddAsync(customer);
+            await database.SaveChangesAsync();
+            var existcustomer=await database.Customers.AsNoTracking().FirstOrDefaultAsync(x=>x.CustomerId==customer.CustomerId);
+            Assert.NotNull(existcustomer);
 
         }
         [Fact]
