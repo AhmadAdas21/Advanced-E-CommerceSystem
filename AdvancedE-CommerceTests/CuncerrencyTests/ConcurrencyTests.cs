@@ -174,7 +174,93 @@ namespace AdvancedE_CommerceTests.CuncerrencyTests
         [Fact]
         public async Task ConcurrentCancellation_ShouldRestoreStockOnlyOnce()
         {
+            using var scope = factory.Services.CreateScope();
 
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+            const int initialStock = 100;
+            const int orderQuantity = 10;
+            const int concurrentRequests = 50;
+            var customer = new Customer
+            {
+                CustomerName = "Test Customer",
+                CustomerEmail = $"{Guid.NewGuid():N}@test.com",
+                CustomerPhone = "0591234567",
+                IsVip = false
+            };
+
+            var product = new Product
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Test Product",
+                ProductDescription = "Concurrency Test",
+                ProductPrice = 100m,
+                AvailableStock = initialStock,
+                IsActive = true
+            };
+
+            database.Customers.Add(customer);
+            database.Products.Add(product);
+
+            await database.SaveChangesAsync();
+
+            var order = new CreateOrder
+            {
+                CustomerId = customer.CustomerId,
+                RequestId = Guid.NewGuid(),
+                Items = new List<CreateOrderItem>
+                {
+                  new CreateOrderItem
+                  {
+                    Quantity = orderQuantity,
+                    SKU = product.SKU
+                  }
+                }
+            };
+
+            var createResponse = await client.PostAsJsonAsync("/api/orders", order);
+
+            Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+            var savedOrder = await database.Orders.AsNoTracking().SingleAsync(o => o.RequestId == order.RequestId);
+            var productBeforeCancel = await database.Products.AsNoTracking().SingleAsync(p => p.SKU == product.SKU);
+
+            Assert.Equal(initialStock - orderQuantity,productBeforeCancel.AvailableStock);
+            var cancelOrder = new CancelOrder
+            {
+                OrderId = savedOrder.OrderId,
+                Status = 2
+            };
+
+            var tasks = new List<Task<HttpResponseMessage>>();
+
+            for (int i = 0; i < concurrentRequests; i++)
+            {
+                tasks.Add(client.PatchAsJsonAsync($"/api/orders?orderId={savedOrder.OrderId}",cancelOrder));
+            }
+
+            var responses = await Task.WhenAll(tasks);
+            
+
+            foreach (var group in responses.GroupBy(r => r.StatusCode))
+            {
+                Console.WriteLine($"{group.Key}: {group.Count()}");
+            }
+
+            var successfulCancellations = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
+
+            var rejectedCancellations = responses.Count( r => r.StatusCode == HttpStatusCode.Conflict);
+            foreach (var response in responses)
+            {
+                if (response.StatusCode != HttpStatusCode.OK &&response.StatusCode != HttpStatusCode.Conflict)
+                {
+                    Console.WriteLine(response.StatusCode);
+                    Console.WriteLine(await response.Content.ReadAsStringAsync());
+                }
+            }
+            Assert.Equal(1, successfulCancellations);
+            Assert.Equal(concurrentRequests - 1, rejectedCancellations);
+            var productAfterCancell = await database.Products.AsNoTracking().SingleAsync(x => x.SKU == product.SKU);
+            Assert.Equal(initialStock, productAfterCancell.AvailableStock);
         }
 
         [Fact]
