@@ -1,0 +1,110 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text;
+using System.Threading.Tasks;
+using High_Traffic_E_Commerce_Inventory_Order_System.DataBase;
+using High_Traffic_E_Commerce_Inventory_Order_System.Dto_s.OrderDto_s;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.customer_model;
+using High_Traffic_E_Commerce_Inventory_Order_System.models.ProductsModel;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace AdvancedE_CommerceTests.CuncerrencyTests
+{
+    public class ConcurrencyTests : IClassFixture<WebApplicationFactory<Program>>
+    {
+        private readonly HttpClient client;
+        private readonly WebApplicationFactory<Program> factory;
+
+        public ConcurrencyTests(WebApplicationFactory<Program> factory)
+        {
+            this.factory = factory;
+            client = factory.CreateClient();
+        }
+
+        [Fact]
+        public async Task ConcurrentOrders_ShouldPreventOverselling()
+        {
+            using var scope = factory.Services.CreateScope();
+
+            var database = scope.ServiceProvider.GetRequiredService<DataBaseContext>();
+
+            const int initialStock = 25;
+            const int concurrentRequests = 100;
+            var customer = new Customer
+            {
+                CustomerName = "Test Customer",
+                CustomerEmail = $"{Guid.NewGuid():N}@test.com",
+                CustomerPhone = "0591234567",
+                IsVip = false
+            };
+            await database.Customers.AddAsync(customer);
+            var product = new Product
+            {
+                SKU = Guid.NewGuid().ToString("N")[..20],
+                ProductName = "Test Product",
+                ProductDescription = "Integration Test",
+                ProductPrice = 100m,
+                AvailableStock = initialStock,
+                IsActive = true
+            };
+            await database.Products.AddAsync(product);
+            await database.SaveChangesAsync();
+            var tasks = new List<Task<HttpResponseMessage>>();
+
+            for (int i = 0; i < concurrentRequests; i++)
+            {
+                var order = new CreateOrder
+                {
+                    CustomerId = customer.CustomerId,
+                    RequestId = Guid.NewGuid(),
+                    Items = new List<CreateOrderItem>
+                     {
+                        new CreateOrderItem
+                         {
+                             SKU = product.SKU,
+                             Quantity = 1
+                         }
+                     }
+                };
+
+                tasks.Add(client.PostAsJsonAsync("/api/orders", order));
+            }
+            var responses = await Task.WhenAll(tasks);
+            var successfulOrders = responses.Count(r => r.StatusCode == HttpStatusCode.Created);
+
+            var rejectedOrders = responses.Count(r => r.StatusCode == HttpStatusCode.Conflict);
+
+            Assert.Equal(initialStock, successfulOrders);
+
+            Assert.Equal(concurrentRequests-initialStock, rejectedOrders);
+        }
+
+        [Fact]
+        public async Task ConcurrentOrders_ShouldPreventDuplicateRequestId()
+        {
+
+        }
+
+        [Fact]
+        public async Task ConcurrentCancellation_ShouldRestoreStockOnlyOnce()
+        {
+
+        }
+
+        [Fact]
+        public async Task ConcurrentMultiProductOrders_ShouldMaintainStockConsistency()
+        {
+
+        }
+
+        [Fact]
+        public async Task ConcurrentCacheReads_ShouldReturnConsistentData()
+        {
+
+        }
+    }
+}
