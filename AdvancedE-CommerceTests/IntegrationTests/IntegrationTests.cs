@@ -90,7 +90,31 @@ namespace AdvancedE_CommerceTests.IntegrationTests
             var cachedData = await cache.GetStringAsync("products:v2:all");
 
             Assert.NotNull(cachedData);
-           
+            var singleProductResponse = await client.GetAsync($"/api/product/id/{savedProduct.ProductId}");
+
+            Assert.Equal(HttpStatusCode.OK,singleProductResponse.StatusCode);
+
+            var productCacheKey =$"products:v2:id:{savedProduct.ProductId}";
+
+            Assert.NotNull(await cache.GetStringAsync(productCacheKey));
+            var updatedProduct = new UpdateProduct
+            {
+                SKU = product.SKU,
+                ProductName = "Updated Apple Juice",
+                ProductDescription = "Updated Description",
+                ProductPrice = 200m,
+                AvailableStock = 50,
+                IsActive = true
+            };
+            var updateResponse = await client.PutAsJsonAsync( $"/api/product/id/{savedProduct.ProductId}",updatedProduct);
+
+            Assert.Equal(HttpStatusCode.OK,updateResponse.StatusCode);
+
+            var productAfterUpdate = await database.Products.AsNoTracking().SingleAsync(p => p.SKU == product.SKU);
+            var cacheAfterUpdate = await cache.GetStringAsync("products:v2:all");
+
+            Assert.Null(cacheAfterUpdate);
+
         }
         [Fact]
         public async Task CreateCustomer_ShouldPersistCustomerToDatabase()
